@@ -560,10 +560,10 @@ class RPCCoverage():
         return all_cmds - covered_cmds
 
 
-def main2(_num):
+def main2(_num, _testpath):
     # Create base test directory
     # local = os.getcwd()
-    local = os.environ.get('TEST')
+    local = os.environ.get(_testpath)
     tmpdir = "%s/elastos_test_runner_%s" % (local, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(tmpdir)
 
@@ -625,13 +625,14 @@ def main2(_num):
 if __name__ == '__main__':
     # main()
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         print("Usage: ")
-        print("python3 main.py [node_number, the least number is 4]")
+        print("python3 main.py [node_number test_path]")
         print("Example: ")
-        print("python3 main.py 4")
+        print("python3 main.py 4 work")
         exit(0)
 
     else:
         node_num = sys.argv[1]
-        main2(int(node_num))
+        test_path = sys.argv[2]
+        main2(int(node_num), test_path)
