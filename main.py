@@ -31,7 +31,7 @@ import subprocess
 import tempfile
 import re
 import logging
-
+import codecs
 import json
 
 # Formatting. Default colors to empty strings.
@@ -578,11 +578,16 @@ def main2(_num):
     f.write(json_str)
     f.close()
 
-    file = open(os.path.join(os.environ.get('GOPATH'), 'src', 'Elastos.ELA', 'config.json'))
-    config_json = file.read()
+    with open(os.path.join(os.environ.get('GOPATH'), 'src', 'Elastos.ELA', 'config.json'), "r+b") as fp:
+        config_json = fp.read()
+        config_json = config_json.decode("utf-8-sig")
 
-    if config_json.startswith(u'\ufeff'):
-        config_json = config_json.encode('utf8')[3:].decode('utf8')
+
+    # file = open(os.path.join(os.environ.get('GOPATH'), 'src', 'Elastos.ELA', 'config.json'))
+    # config_json = file.read()
+
+    # if config_json.startswith(u'\ufeff'):
+    #     config_json = config_json.encode('utf8')[3:].decode('utf8')
 
     config = json.loads(config_json.strip())
 
@@ -606,7 +611,7 @@ def main2(_num):
         config['Configuration']['PowConfiguration']['ActiveNet'] = "MainNet"
         config['Configuration']['PowConfiguration']['PayToAddr'] = 'EPcqDUwUxJ96bTr6zB7tJnNXEN93JeBSKZ'
 
-        if i % 2 == 0:
+        if i == 0:
             config['Configuration']['PowConfiguration']['AutoMining'] = True
         else:
             config['Configuration']['PowConfiguration']['AutoMining'] = False
