@@ -27,12 +27,16 @@ import time
 import shutil
 import signal
 import sys
-import subprocess
 import tempfile
 import re
 import logging
 import codecs
 import json
+import subprocess
+
+import config
+from Utility.util import deploy
+from Utility import node
 
 # Formatting. Default colors to empty strings.
 BOLD, BLUE, RED, GREY = ("", ""), ("", ""), ("", ""), ("", "")
@@ -560,68 +564,6 @@ class RPCCoverage():
         return all_cmds - covered_cmds
 
 
-def main2(_num, _testpath):
-    # Create base test directory
-    # local = os.getcwd()
-    local = os.environ.get(_testpath)
-    tmpdir = "%s/elastos_test_runner_%s" % (local, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-    os.makedirs(tmpdir)
-
-    _path = os.path.join(tmpdir, "Client", 'cli' + str(0))
-    if not os.path.isdir(_path):
-        os.makedirs(_path)
-    shutil.copy(os.path.join(os.environ.get('GOPATH'), 'src', 'ELAClient', 'ela-cli'),
-                os.path.join(_path, 'ela-cli'))
-    ela_config = {"LogToFile": False, "IpAddress": "localhost", "HttpJsonPort": 10336}
-    json_str = json.dumps(ela_config)
-    f = open(os.path.join(_path, 'cli-config.json'), 'w')
-    f.write(json_str)
-    f.close()
-
-    with open(os.path.join(os.environ.get('GOPATH'), 'src', 'Elastos.ELA', 'config.json'), "r+b") as fp:
-        config_json = fp.read()
-        config_json = config_json.decode("utf-8-sig")
-
-
-    # file = open(os.path.join(os.environ.get('GOPATH'), 'src', 'Elastos.ELA', 'config.json'))
-    # config_json = file.read()
-
-    # if config_json.startswith(u'\ufeff'):
-    #     config_json = config_json.encode('utf8')[3:].decode('utf8')
-
-    config = json.loads(config_json.strip())
-
-    for i in range(_num):
-        _path = os.path.join(tmpdir, "node" + str(i))
-        if not os.path.isdir(_path):
-            os.makedirs(_path)
-        shutil.copy(os.path.join(os.environ.get('GOPATH'), 'src', 'Elastos.ELA', 'node'),
-                    os.path.join(_path, 'node'))
-
-        config['Configuration']['Magic'] = 20180000
-        config['Configuration']['SeedList'] = ["127.0.0.1:10338", "127.0.0.1:11338", "127.0.0.1:14338",
-                                               "127.0.0.1:15338"]
-        config['Configuration']['HttpInfoPort'] = i * 1000 + 10333
-        config['Configuration']['HttpRestPort'] = i * 1000 + 10334
-        config['Configuration']['HttpWsPort'] = i * 1000 + 10335
-        config['Configuration']['HttpJsonPort'] = i * 1000 + 10336
-        config['Configuration']['NodePort'] = i * 1000 + 10338
-        config['Configuration']['MiningSelfPort'] = i * 1000 + 10339
-        config['Configuration']['MultiCoreNum'] = 1
-        config['Configuration']['PowConfiguration']['ActiveNet'] = "MainNet"
-        config['Configuration']['PowConfiguration']['PayToAddr'] = 'EPcqDUwUxJ96bTr6zB7tJnNXEN93JeBSKZ'
-
-        if i == 0:
-            config['Configuration']['PowConfiguration']['AutoMining'] = True
-        else:
-            config['Configuration']['PowConfiguration']['AutoMining'] = False
-
-        json_str = json.dumps(config)
-        f = open(os.path.join(_path, 'config.json'), 'w')
-        f.write(json_str)
-        f.close()
-
-
 if __name__ == '__main__':
     # main()
 
@@ -633,6 +575,56 @@ if __name__ == '__main__':
         exit(0)
 
     else:
-        node_num = sys.argv[1]
+        node_num = int(sys.argv[1])
         test_path = sys.argv[2]
-        main2(int(node_num), test_path)
+        dirname = deploy(node_num, test_path)
+        print("Deploy finished %s", dirname)
+
+        nodes = {}
+
+        for i in range(node_num):
+            _config = {}
+            _config['Magic'] = 20180000
+            _config['SeedList'] = ["127.0.0.1:10338", "127.0.0.1:11338", "127.0.0.1:12338", "127.0.0.1:13338"]
+
+            _config['HttpInfoPort'] = i * 1000 + 10333
+            _config['HttpRestPort'] = i * 1000 + 10334
+            _config['HttpWsPort'] = i * 1000 + 10335
+            _config['HttpJsonPort'] = i * 1000 + 10336
+            _config['NodePort'] = i * 1000 + 10338
+            _config['PowConfiguration'] = {
+                'MiningSelfPort': i * 1000 + 10339,
+                'MultiCoreNum': 1,
+                'PayToAddr': 'EPcqDUwUxJ96bTr6zB7tJnNXEN93JeBSKZ',
+                'AutoMining': False,
+                'ActiveNet': 'MainNet'
+            }
+            nodes[i] = node.Node(i, dirname, host={}, timewait=60, binary=config.node_name, stderr=None,
+                                 extra_conf=_config)
+            # print(i, 'nodes--1 (pid={})'.format(nodes[i].process.pid))
+            # print(type(nodes[i].process.pid))
+
+        print(nodes)
+
+
+        for i in range(node_num):
+            nodes[i].start()
+
+        time.sleep(5)
+
+        blockhash = nodes[0].generate(5)
+        print("The 10 Block Hashs are", blockhash)
+        print("Height", nodes[1].get_block_count())
+        time.sleep(10)
+
+        blockhash = nodes[3].generate(3)
+        print("The 5 Block Hashs are", blockhash)
+        print("Height", nodes[1].get_block_count())
+
+        for i in range(node_num):
+            print(i, nodes[i].running)
+            nodes[i].stop()
+            print("Node %d is stoped" % i)
+            print(i, nodes[i].process)
+            print(i, nodes[i].is_node_stopped())
+            time.sleep(5)
