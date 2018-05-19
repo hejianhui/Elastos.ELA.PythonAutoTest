@@ -13,15 +13,101 @@ import os
 import datetime
 import json
 import shutil
-import subprocess
+import time
 
 import config
-# from .node import Node
 
 from .authproxy import AuthServiceProxy, JSONRPCException
 
 from . import coverage
 
+
+# Assert functions
+##################
+
+def assert_equal(thing1, thing2, *args):
+    if thing1 != thing2 or any(thing1 != arg for arg in args):
+        raise AssertionError("not(%s)" % " == ".join(str(arg) for arg in (thing1, thing2) + args))
+
+
+# Utility functions
+###################
+
+
+# RPC/P2P connection constants and functions
+############################################
+
+
+# The maximum number of nodes a single test can spawn
+MAX_NODES = 8
+# Don't assign rpc or p2p ports lower than this
+PORT_MIN = 10000
+# The number of ports to "reserve" for p2p and rpc, each
+PORT_REST = 334
+PORT_RPC = 336
+PORT_P2P = 338
+# The number of port's interval
+PORT_INTERVAL = 1000
+
+
+class PortSeed:
+    # Must be initialized with a unique integer for each process
+    n = None
+
+
+def get_rpc_proxy(url, node_number, timeout=None, coveragedir=None):
+    """
+    Args:
+        url (str): URL of the RPC server to call
+        node_number (int): the node number (or id) that this calls to
+
+    Kwargs:
+        timeout (int): HTTP timeout in seconds
+
+    Returns:
+        AuthServiceProxy. convenience object for making RPC calls.
+
+    """
+    proxy_kwargs = {}
+    if timeout is not None:
+        proxy_kwargs['timeout'] = timeout
+
+    proxy = AuthServiceProxy(url, **proxy_kwargs)
+    proxy.url = url  # store URL on proxy for info
+
+    coverage_logfile = coverage.get_filename(
+        coveragedir, node_number) if coveragedir else None
+
+    return coverage.AuthServiceProxyWrapper(proxy, coverage_logfile)
+
+
+def p2p_port(n):
+    assert (n <= MAX_NODES)
+    return PORT_MIN + PORT_P2P + n * PORT_INTERVAL
+
+
+def rest_port(n):
+    return PORT_MIN + PORT_REST + n * PORT_INTERVAL
+
+
+def rpc_port(n):
+    return PORT_MIN + PORT_RPC + n * PORT_INTERVAL
+
+
+def rpc_url(i, rpchost=None):
+    host = '127.0.0.1'
+    port = rpc_port(i)
+    if rpchost:
+        parts = rpchost.split(':')
+        if len(parts) == 2:
+            host, port = parts
+        else:
+            host = rpchost
+    return "http://%s:%d" % (host, int(port))
+
+
+# Node functions
+################
 
 def deploy(_num, _testpath):
     # Get Node source path
@@ -118,26 +204,6 @@ def deploy(_num, _testpath):
     # return nodes
 
 
-def start_nodes(nodes):
-    node_num = len(nodes)
-    dev_null = open(os.devnull, 'w')
-
-    for i in range(node_num):
-        _path = nodes[i].path
-        print(_path, i)
-        # ret = subprocess.Popen('./' + config.node_name, shell=True, cwd=_path)
-        # print(ret)
-        _proc = subprocess.Popen('./' + config.node_name, stdout=dev_null, shell=True, cwd=_path)
-        print(i, 'Spawned gnutv (pid={})'.format(_proc.pid))
-        nodes[i].process = _proc
-
-    '''
-    ret1 = subprocess.Popen('./' + config.node_name, shell=True, cwd=_path)
-    # ret1 = subprocess.call('cd %s &&ls' %_path)
-    print(ret1)
-    '''
-
-
 def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))
 
@@ -160,81 +226,21 @@ def update_config(dirname, n, options):
         config_output.close()
 
 
-def assert_equal(thing1, thing2, *args):
-    if thing1 != thing2 or any(thing1 != arg for arg in args):
-        raise AssertionError("not(%s)" % " == ".join(str(arg) for arg in (thing1, thing2) + args))
-
-
-# RPC/P2P connection constants and functions
-############################################
-
-
-# The maximum number of nodes a single test can spawn
-MAX_NODES = 8
-# Don't assign rpc or p2p ports lower than this
-PORT_MIN = 10000
-# The number of ports to "reserve" for p2p and rpc, each
-PORT_REST = 334
-PORT_RPC = 336
-PORT_P2P = 338
-# The number of port's interval
-PORT_INTERVAL = 1000
-
-
-class PortSeed:
-    # Must be initialized with a unique integer for each process
-    n = None
-
-
-def get_rpc_proxy(url, node_number, timeout=None, coveragedir=None):
+def sync_blocks(nodes, *, wait=1, timeout=60):
     """
-    Args:
-        url (str): URL of the RPC server to call
-        node_number (int): the node number (or id) that this calls to
+    Wait until everybody has the same tip.
 
-    Kwargs:
-        timeout (int): HTTP timeout in seconds
-
-    Returns:
-        AuthServiceProxy. convenience object for making RPC calls.
-
+    sync_blocks needs to be called with an rpc_connections set that has least
+    one node already synced to the latest, stable tip, otherwise there's a
+    chance it might return before all nodes are stably synced.
     """
-    proxy_kwargs = {}
-    if timeout is not None:
-        proxy_kwargs['timeout'] = timeout
-
-    proxy = AuthServiceProxy(url, **proxy_kwargs)
-    proxy.url = url  # store URL on proxy for info
-
-    coverage_logfile = coverage.get_filename(
-        coveragedir, node_number) if coveragedir else None
-
-    return coverage.AuthServiceProxyWrapper(proxy, coverage_logfile)
-
-
-def p2p_port(n):
-    assert (n <= MAX_NODES)
-    return PORT_MIN + PORT_P2P + n * PORT_INTERVAL
-
-
-def rest_port(n):
-    return PORT_MIN + PORT_REST + n * PORT_INTERVAL
-
-
-def rpc_port(n):
-    return PORT_MIN + PORT_RPC + n * PORT_INTERVAL
-
-
-def rpc_url(i, rpchost=None):
-    host = '127.0.0.1'
-    port = rpc_port(i)
-    if rpchost:
-        parts = rpchost.split(':')
-        if len(parts) == 2:
-            host, port = parts
-        else:
-            host = rpchost
-    return "http://%s:%d" % (host, int(port))
+    stop_time = time.time() + timeout
+    while time.time() <= stop_time:
+        best_hash = [nodes[i].get_best_block_hash() for i in range(len(nodes))]
+        if best_hash.count(best_hash[0]) == len(nodes):
+            return
+        time.sleep(wait)
+    raise AssertionError("Block sync timed out:{}".format("".join("\n  {!r}".format(b) for b in best_hash)))
 
 
 class Main():
