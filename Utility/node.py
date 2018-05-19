@@ -55,7 +55,7 @@ class Node(object):
         # coverage_dir用于保存log信息，暂未使用
         self.index = i
         self.datadir = os.path.join(dirname, "node" + str(i))
-        print(i,self.datadir)
+        print(i, self.datadir)
 
         # rpchost用于构建get_rpc_proxy实例
         # self.rpchost = rpchost if rpchost else None
@@ -130,21 +130,122 @@ class Node(object):
         self.log.debug("Node stopped")
         return True
 
-    ## 封装的RPC方法，如RPC接口变更，对Method及Parameter进行相应修改即可
+    ### 封装的RPC方法，如RPC接口变更，对Method及Parameter进行相应修改即可
+    ## Interface for mining
     def generate(self, n):
-        resp = requests.post(self.url, json={"method": "manualmining", "params": {"count": n}},
+        resp = requests.post(self.url, json={"method": "discretemining", "params": {"count": n}},
                              headers={"content-type": "application/json"})
         return resp.json()['result']
 
-    def get_block_count(self):
-        resp = requests.post(self.url, json={"method": "getcurrentheight", "params": {}},
-                             headers={"content-type": "application/json"})
-        return resp.json()['result']
-
+    # 设置节点是否开启挖矿
     def set_mining(self, mining):
         resp = requests.post(self.url, json={"method": "togglemining", "params": {"mining": mining}},
                              headers={"content-type": "application/json"})
         return resp.json()['result']
+
+    ## Interface for querying information
+    # 获取节点当前高度，目前节点无此接口
+    # def get_height(self):
+    #     resp = requests.post(self.url, json={"method": "getcurrentheight", "params": {}},
+    #                          headers={"content-type": "application/json"})
+    #     return resp.json()['result']
+
+    # 获取节点所有区块数，比高度多1，因创世区块高度为0
+    def get_block_count(self):
+        resp = requests.post(self.url, json={"method": "getblockcount", "params": {}},
+                             headers={"content-type": "application/json"})
+        return resp.json()['result']
+
+    # 获取当前最高区块的BlockHash
+    def get_best_block_hash(self):
+        resp = requests.post(self.url, json={"method": "getbestblockhash", "params": {}},
+                             headers={"content-type": "application/json"})
+        return resp.json()['result']
+
+    # 根据BlockHash获取区块详情，formate：0返回原始16进制字符串，1区块交易信息中只返回txid，2返回交易的完整信息
+    # 建议节点端需增加AuxPow内容的解析
+    def get_block_by_hash(self, blockhash, verbosity=2):
+        resp = requests.post(self.url, json={"method": "getblock", "params": {"blockhash": blockhash, "verbosity": verbosity}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 根据区块高度查询区块详情，verbosity=2
+    def get_block_by_height(self, height):
+        resp = requests.post(self.url, json={"method": "getblockbyheight", "params": {"height": height}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 根据区块高度获取BlockHash
+    def get_block_hash_by_height(self, height):
+        resp = requests.post(self.url, json={"method": "getblockhash", "params": {"height": height}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 获取节点连接数
+    def get_connection_count(self):
+        resp = requests.post(self.url, json={"method": "getconnectioncount", "params": {}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+    # 获取节点交易池
+    def get_transaction_pool(self):
+        resp = requests.post(self.url, json={"method": "getrawmempool", "params": {}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 根据txid获取交易
+    def get_raw_transaction(self, txid, verbose=1):
+        resp = requests.post(self.url, json={"method": "getrawtransaction", "params": {"txid": txid, "verbose": verbose}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 获取邻居节点信息
+    def get_neighbors(self):
+        resp = requests.post(self.url, json={"method": "getneighbors", "params": {}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 获取节点状态
+    def get_node_state(self):
+        resp = requests.post(self.url, json={"method": "getnodestate", "params": {}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 发送交易
+    def send_raw_transaction(self, data):
+        resp = requests.post(self.url, json={"method": "sendrawtransaction", "params": {"Data": data}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 提交区块
+    def submit_block(self, block):
+        resp = requests.post(self.url, json={"method": "submitblock", "params": {"block": block}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 根据高度获取
+    def get_arbitrator_group_by_height(self, height):
+        resp = requests.post(self.url, json={"method": "getarbitratorgroupbyheight", "params": {"height": height}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 根据交易Hash获取交易
+    def get_transaction_by_hash(self, hash):
+        resp = requests.post(self.url, json={"method": "gettransaction", "params": {"hash": hash}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 获取节点信息，包括版本、区块高度、连接节点数
+    def get_info(self):
+        resp = requests.post(self.url, json={"method": "getinfo", "params": {}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
+    # 设置log等级
+    def setloglevel(self, level):
+        resp = requests.post(self.url, json={"method": "setloglevel", "params": {"level": level}},
+                             headers={"content-type": "application/json"})
+        return resp.json()
+
 
 class Main():
     def __init__(self):
