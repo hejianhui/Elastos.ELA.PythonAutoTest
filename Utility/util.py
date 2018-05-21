@@ -120,7 +120,8 @@ def deploy(_num, _testpath):
 
     # Create base test directory
     # local = os.getcwd()
-    tmpdir = "%s/elastos_test_runner_%s" % (_testpath, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+    # tmpdir = "%s/elastos_test_runner_%s" % (_testpath, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+    tmpdir = "%s/elastos_test_runner" % _testpath
     os.makedirs(tmpdir)
 
     # deploy ELAClient
@@ -208,9 +209,8 @@ def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))
 
 
-def update_config(dirname, n, options):
-    datadir = get_datadir_path(dirname, n)
-    with open(os.path.join(datadir, 'config.json'), "r+b") as config_file:
+def update_config(nodedir, options):
+    with open(os.path.join(nodedir, 'config.json'), "r+b") as config_file:
         config_json = config_file.read()
         config_json = json.loads(config_json.decode("utf-8-sig").strip())
         for config_key in options.keys():
@@ -221,7 +221,7 @@ def update_config(dirname, n, options):
                 config_json['Configuration'][config_key] = options[config_key]
 
     json_str = json.dumps(config_json)
-    with open(os.path.join(datadir, 'config.json'), 'w') as config_output:
+    with open(os.path.join(nodedir, 'config.json'), 'w') as config_output:
         config_output.write(json_str)
         config_output.close()
 
