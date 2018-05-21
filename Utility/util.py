@@ -20,6 +20,8 @@ import config
 from .authproxy import AuthServiceProxy, JSONRPCException
 
 from . import coverage
+from . import key_generator
+from . import utility
 
 
 # Assert functions
@@ -241,6 +243,39 @@ def sync_blocks(nodes, *, wait=1, timeout=60):
             return
         time.sleep(wait)
     raise AssertionError("Block sync timed out:{}".format("".join("\n  {!r}".format(b) for b in best_hash)))
+
+
+def get_new_address():
+    key_gen = key_generator.Generator()
+    eccKey = key_gen.create_key_pair()
+    # private_key1 = eccKey.d.to_bytes()
+    public_key = eccKey.public_key()
+
+    redeem_script = key_gen.create_standard_redeem_script(public_key)
+
+    program_hash = utility.script_to_program_hash(redeem_script)
+    address = utility.program_hash_to_address(program_hash).encode()
+    print(address.decode())
+    print(eccKey._d)
+    return address.decode(), eccKey._d
+
+
+def restore_wallet(pk_int):
+    key_gen = key_generator.Generator()
+    eccKey = key_gen.create_public_key_with_private(pk_int)
+
+    public_key = eccKey.public_key()
+
+    redeem_script = key_gen.create_standard_redeem_script(public_key)
+
+    program_hash = utility.script_to_program_hash(redeem_script)
+    address = utility.program_hash_to_address(program_hash).encode()
+
+    print(address.decode())
+    print(type(eccKey._d), eccKey._d)
+    print(type(pk_int), pk_int)
+    if eccKey._d != pk_int:
+        print("Error")
 
 
 class Main():

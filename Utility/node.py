@@ -72,7 +72,7 @@ class Node(object):
         # self.coverage_dir = coverage_dir
         # self.coverage_dir = None
         if extra_conf != None:
-            update_config(dirname, i, extra_conf)
+            update_config(self.datadir, extra_conf)
 
         self.running = False
         self.process = None
@@ -111,6 +111,7 @@ class Node(object):
             self.log.exception("Unable to stop node. %s" % e)
         # self.running = False
         del self.p2ps[:]
+        self.running = False
 
     def is_node_stopped(self):
         """Checks whether the node has stopped.
@@ -120,6 +121,7 @@ class Node(object):
         if not self.running:
             return True
         return_code = self.process.poll()
+        print("node return code is", return_code)
         if return_code is None:
             return False
 
@@ -144,7 +146,7 @@ class Node(object):
         return resp.json()['result']
 
     ## Interface for querying information
-    # 获取节点当前高度，目前节点无此接口
+    # 获取节点当前高度，目前节点无此接口，通过
     # def get_height(self):
     #     resp = requests.post(self.url, json={"method": "getcurrentheight", "params": {}},
     #                          headers={"content-type": "application/json"})
@@ -165,7 +167,8 @@ class Node(object):
     # 根据BlockHash获取区块详情，formate：0返回原始16进制字符串，1区块交易信息中只返回txid，2返回交易的完整信息
     # 建议节点端需增加AuxPow内容的解析
     def get_block_by_hash(self, blockhash, verbosity=2):
-        resp = requests.post(self.url, json={"method": "getblock", "params": {"blockhash": blockhash, "verbosity": verbosity}},
+        resp = requests.post(self.url,
+                             json={"method": "getblock", "params": {"blockhash": blockhash, "verbosity": verbosity}},
                              headers={"content-type": "application/json"})
         return resp.json()
 
@@ -185,7 +188,8 @@ class Node(object):
     def get_connection_count(self):
         resp = requests.post(self.url, json={"method": "getconnectioncount", "params": {}},
                              headers={"content-type": "application/json"})
-        return resp.json()
+        return resp.json()['result']
+
     # 获取节点交易池
     def get_transaction_pool(self):
         resp = requests.post(self.url, json={"method": "getrawmempool", "params": {}},
@@ -194,7 +198,8 @@ class Node(object):
 
     # 根据txid获取交易
     def get_raw_transaction(self, txid, verbose=1):
-        resp = requests.post(self.url, json={"method": "getrawtransaction", "params": {"txid": txid, "verbose": verbose}},
+        resp = requests.post(self.url,
+                             json={"method": "getrawtransaction", "params": {"txid": txid, "verbose": verbose}},
                              headers={"content-type": "application/json"})
         return resp.json()
 
@@ -245,6 +250,16 @@ class Node(object):
         resp = requests.post(self.url, json={"method": "setloglevel", "params": {"level": level}},
                              headers={"content-type": "application/json"})
         return resp.json()
+
+    ## Restful接口
+    # 查询地址余额，直接返回余额对应的字符串
+    def get_balance(self, address):
+        resp = requests.get("http://127.0.0.1:" + str(self.port_rest) + "/api/v1/asset/balances/" + address)
+        resp = resp.json()
+        if resp['Desc'] == 'Success':
+            return resp['Result'], True
+        else:
+            return "", False
 
 
 class Main():
