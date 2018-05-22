@@ -145,101 +145,51 @@ def rpc_url(i, rpchost=None):
 # Node functions
 ################
 
-def deploy(_num, _testpath):
+def deploy(_num, _testpath, spv=False):
     # Get Node source path
-    node_path = os.environ.get('GOPATH')
+    node_src_path = os.environ.get('GOPATH')
     for _path in config.node_src_path:
-        node_path = os.path.join(node_path, _path)
+        node_src_path = os.path.join(node_src_path, _path)
+        print(node_src_path)
 
-    # store the nodes' port, path, etc
-    nodes = {}
+    if not spv:
+        # Deploy full node
+        # Create base test directory
+        # local = os.getcwd()
+        tmpdir = "%s/elastos_test_runner_%s" % (_testpath, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        # tmpdir = "%s/elastos_test_runner" % _testpath
+        os.makedirs(tmpdir)
+        print("Temp dir is:", tmpdir, os.path.exists(tmpdir))
 
-    # Create base test directory
-    # local = os.getcwd()
-    # tmpdir = "%s/elastos_test_runner_%s" % (_testpath, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-    tmpdir = "%s/elastos_test_runner" % _testpath
-    os.makedirs(tmpdir)
+        for i in range(_num):
+            _path = os.path.join(tmpdir, "node" + str(i))
+            if not os.path.isdir(_path):
+                os.makedirs(_path)
 
-    # deploy ELAClient
-    # _path = os.path.join(tmpdir, "Client", 'cli' + str(0))
-    # if not os.path.isdir(_path):
-    #     os.makedirs(_path)
-    # shutil.copy(os.path.join(os.environ.get('GOPATH'), 'src', 'ELAClient', 'ela-cli'),
-    #             os.path.join(_path, 'ela-cli'))
-    # ela_config = {"LogToFile": False, "IpAddress": "localhost", "HttpJsonPort": 10336}
-    # json_str = json.dumps(ela_config)
-    # f = open(os.path.join(_path, 'cli-config.json'), 'w')
-    # f.write(json_str)
-    # f.close()
+            shutil.copy(os.path.join(node_src_path, config.node_name), os.path.join(_path, config.node_name))
+            shutil.copy(os.path.join(node_src_path, config.config_file), os.path.join(_path, 'config.json'))
+        return tmpdir
+    else:
+        # Deploy exchange node
+        if os.path.exists(_testpath):
+            for i in range(_num):
+                _path = os.path.join(_testpath, "spv" + str(i))
+                if not os.path.isdir(_path):
+                    os.makedirs(_path)
 
-    # with open(
-    #         os.path.join(node_path, config.config_file), "r+b") as fp:
-    #     config_json = fp.read()
-    #     config_json = config_json.decode("utf-8-sig")
+                shutil.copy(os.path.join(node_src_path, config.node_name), os.path.join(_path, config.node_name))
+                shutil.copy(os.path.join(node_src_path, config.config_file), os.path.join(_path, 'config.json'))
+            return _testpath
+        else:
+            os.makedirs(_testpath)
+            for i in range(_num):
+                _path = os.path.join(_testpath, "spv" + str(i))
+                if not os.path.isdir(_path):
+                    os.makedirs(_path)
 
-    # file = open(os.path.join(os.environ.get('GOPATH'), 'src', 'Elastos.ELA', 'config.json'))
-    # config_json = file.read()
-
-    # if config_json.startswith(u'\ufeff'):
-    #     config_json = config_json.encode('utf8')[3:].decode('utf8')
-
-    # config_template = json.loads(config_json.strip())
-    #
-    for i in range(_num):
-        _path = os.path.join(tmpdir, "node" + str(i))
-        if not os.path.isdir(_path):
-            os.makedirs(_path)
-
-        shutil.copy(os.path.join(node_path, config.node_name), os.path.join(_path, config.node_name))
-        shutil.copy(os.path.join(node_path, config.config_file), os.path.join(_path, 'config.json'))
-    return tmpdir
-    #
-    #     _config = {}
-    #     _config['Path'] = _path
-    #     _config['Magic'] = 20180000
-    #     _config['SeedList'] = ["127.0.0.1:10338", "127.0.0.1:11338", "127.0.0.1:12338", "127.0.0.1:13338"]
-    #
-    #     _config['HttpInfoPort'] = i * 1000 + 10333
-    #     _config['HttpRestPort'] = i * 1000 + 10334
-    #     _config['HttpWsPort'] = i * 1000 + 10335
-    #     _config['HttpJsonPort'] = i * 1000 + 10336
-    #     _config['NodePort'] = i * 1000 + 10338
-    #     _config['MiningSelfPort'] = i * 1000 + 10339
-    #     _config['MultiCoreNum'] = 1
-    #     _config['ActiveNet'] = 'MainNet'
-    #     _config['PayToAddr'] = 'EPcqDUwUxJ96bTr6zB7tJnNXEN93JeBSKZ'
-    #
-    #     # if i == 0:
-    #     #     _config['AutoMining'] = True
-    #     # else:
-    #     #     _config['AutoMining'] = False
-    #
-    #     _config['AutoMining'] = False
-    #
-    #     _node = Node(_config)
-    #
-    #     config_template['Configuration']['Magic'] = _node.magic
-    #     config_template['Configuration']['SeedList'] = _node.seedList
-    #     config_template['Configuration']['HttpInfoPort'] = _node.infoPort
-    #     config_template['Configuration']['HttpRestPort'] = _node.restPort
-    #     config_template['Configuration']['HttpWsPort'] = _node.wsPort
-    #     config_template['Configuration']['HttpJsonPort'] = _node.jsonPort
-    #     config_template['Configuration']['NodePort'] = _node.nodePort
-    #     config_template['Configuration']['MiningSelfPort'] = _node.miningPort
-    #     config_template['Configuration']['MultiCoreNum'] = _node.miningCoreNum
-    #     config_template['Configuration']['PowConfiguration']['ActiveNet'] = _node.activeNet
-    #     config_template['Configuration']['PowConfiguration']['PayToAddr'] = _node.address
-    #     config_template['Configuration']['PowConfiguration']['AutoMining'] = _node.miningState
-    #
-    #     json_str = json.dumps(config_template)
-    #     f = open(os.path.join(_path, 'config.json'), 'w')
-    #     f.write(json_str)
-    #     f.close()
-    #
-    #     nodes[i] = _node
-    #
-    # return nodes
-
+                shutil.copy(os.path.join(node_src_path, config.node_name), os.path.join(_path, config.node_name))
+                shutil.copy(os.path.join(node_src_path, config.config_file), os.path.join(_path, 'config.json'))
+            return _testpath
 
 def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))
