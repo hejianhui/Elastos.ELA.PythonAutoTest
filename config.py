@@ -15,6 +15,10 @@ config_file = 'config.json.sample'
 node_src_path = ['src', 'github.com', 'elastos', 'Elastos.ELA']
 # node_src_path = ['src', 'Elastos.ELA']
 
+svp_node_name = 'service'
+spv_config_file = 'config.json'
+spv_node_src_path = ['src', 'github.com', 'elastos', 'Elastos.ELA.SPV']
+
 
 def func():
     pass

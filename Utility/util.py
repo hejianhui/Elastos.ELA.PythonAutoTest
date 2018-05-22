@@ -152,7 +152,7 @@ def deploy(_num, _testpath):
     # config_template = json.loads(config_json.strip())
     #
     for i in range(_num):
-        _path = os.path.join(tmpdir, "Node" + str(i))
+        _path = os.path.join(tmpdir, "node" + str(i))
         if not os.path.isdir(_path):
             os.makedirs(_path)
 
@@ -222,10 +222,10 @@ def update_config(nodedir, options):
             else:
                 config_json['Configuration'][config_key] = options[config_key]
 
-    json_str = json.dumps(config_json)
+    # json_str = json.dumps(config_json, sort_keys=True, indent=4, separators=(',', ':'))
+
     with open(os.path.join(nodedir, 'config.json'), 'w') as config_output:
-        config_output.write(json_str)
-        config_output.close()
+        json.dump(config_json, config_output, sort_keys=True, indent=4, separators=(',', ':'))
 
 
 def sync_blocks(nodes, *, wait=1, timeout=60):
@@ -248,16 +248,13 @@ def sync_blocks(nodes, *, wait=1, timeout=60):
 def get_new_address():
     key_gen = key_generator.Generator()
     eccKey = key_gen.create_key_pair()
-    # private_key1 = eccKey.d.to_bytes()
     public_key = eccKey.public_key()
 
     redeem_script = key_gen.create_standard_redeem_script(public_key)
-
     program_hash = utility.script_to_program_hash(redeem_script)
     address = utility.program_hash_to_address(program_hash).encode()
-    print(address.decode())
-    print(eccKey._d)
-    return address.decode(), eccKey._d
+
+    return address.decode(), eccKey._d, eccKey
 
 
 def restore_wallet(pk_int):
@@ -277,6 +274,48 @@ def restore_wallet(pk_int):
     if eccKey._d != pk_int:
         print("Error")
 
+# 批量生成地址，输出以address为key，private_key_int及ECCkey为value的字典
+def generage_address(num):
+    address_dict = {}
+    for i in range(num):
+        add, pk_int, ecc = get_new_address()
+        address_dict[add] = {"pk_int": pk_int, "ecc": ecc}
+    return address_dict
+
+# 导出地址及ECCkey._d字典
+def export_addresses(add_dict, path='./address.json'):
+    if utility.is_file_exist(path):
+        with open(path) as address_file:
+            address_json = address_file.read()
+            address_json = json.loads(address_json.strip())
+            for add in add_dict.keys():
+                if add in address_json.keys():
+                    continue
+                else:
+                    address_json[add] = {"pk_int": str(add_dict[add]["pk_int"])}
+
+        with open(path, 'w') as address_output:
+            json.dump(address_json, address_output, sort_keys=True, indent=4, separators=(',', ':'))
+
+    else:
+
+        address_json = {}
+        for add in add_dict.keys():
+            address_json[add] = {"pk_int": str(add_dict[add]["pk_int"])}
+        print(address_json)
+        with open(path, 'w') as address_output:
+            json.dump(address_json, address_output, sort_keys=True, indent=4, separators=(',', ':'))
+
+def import_addresses(path='./address.json'):
+    if not os.path.exists(path):
+        print("There is no backup file address.json")
+        return None
+    else:
+        with open(path,'r') as address_file:
+            address_json = address_file.read()
+            address_json = json.loads(address_json.strip())
+            print(type(address_json),address_json)
+        return address_json
 
 class Main():
     def __init__(self):
