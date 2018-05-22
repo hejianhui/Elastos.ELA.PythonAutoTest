@@ -50,11 +50,14 @@ class Node(object):
     will be dispatched to the RPC and Restful connections.
     '''
 
-    def __init__(self, i, dirname, host, timewait, binary, stderr, mocktime=60, coverage_dir=None, extra_conf=None,
-                 extra_args=None, use_cli=False):
+    def __init__(self, i, dirname, host, timewait, binary, stderr, spv=False, mocktime=60, coverage_dir=None,
+                 extra_conf=None, extra_args=None, use_cli=False):
         # coverage_dir用于保存log信息，暂未使用
         self.index = i
-        self.datadir = os.path.join(dirname, "node" + str(i))
+        if not spv:
+            self.datadir = os.path.join(dirname, "node" + str(i))
+        else:
+            self.datadir = os.path.join(dirname, "spv" + str(i))
         print(i, self.datadir)
 
         # rpchost用于构建get_rpc_proxy实例
@@ -197,13 +200,14 @@ class Node(object):
         return resp.json()
 
     # 根据txid获取交易
-    def get_raw_transaction(self, txid, verbose=1):
+    def get_raw_transaction(self, txid, verbose=True):
         resp = requests.post(self.url,
                              json={"method": "getrawtransaction", "params": {"txid": txid, "verbose": verbose}},
                              headers={"content-type": "application/json"})
         return resp.json()
 
     # 获取邻居节点信息
+    #
     def get_neighbors(self):
         resp = requests.post(self.url, json={"method": "getneighbors", "params": {}},
                              headers={"content-type": "application/json"})
@@ -234,12 +238,14 @@ class Node(object):
         return resp.json()
 
     # 根据交易Hash获取交易
-    def get_transaction_by_hash(self, hash):
-        resp = requests.post(self.url, json={"method": "gettransaction", "params": {"hash": hash}},
+    # 是否将hash改为txid
+    def get_transaction_by_hash(self, txid):
+        resp = requests.post(self.url, json={"method": "gettransaction", "params": {"hash": txid}},
                              headers={"content-type": "application/json"})
         return resp.json()
 
     # 获取节点信息，包括版本、区块高度、连接节点数
+    #
     def get_info(self):
         resp = requests.post(self.url, json={"method": "getinfo", "params": {}},
                              headers={"content-type": "application/json"})
