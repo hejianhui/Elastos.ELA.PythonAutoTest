@@ -45,11 +45,15 @@ MAX_NODES = 8
 # Don't assign rpc or p2p ports lower than this
 PORT_MIN = 10000
 # The number of ports to "reserve" for p2p and rpc, each
+PORT_INFO = 333
 PORT_REST = 334
+PORT_WS = 335
 PORT_RPC = 336
 PORT_P2P = 338
+PORT_MINING = 339
 # The number of port's interval
 PORT_INTERVAL = 1000
+SPV_INTERVAL = 10000
 
 
 class PortSeed:
@@ -83,17 +87,47 @@ def get_rpc_proxy(url, node_number, timeout=None, coveragedir=None):
     return coverage.AuthServiceProxyWrapper(proxy, coverage_logfile)
 
 
-def p2p_port(n):
+def info_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_INFO + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_INFO + n * PORT_INTERVAL
+
+
+def ws_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_WS + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_WS + n * PORT_INTERVAL
+
+
+def p2p_port(n, spv=False):
     assert (n <= MAX_NODES)
-    return PORT_MIN + PORT_P2P + n * PORT_INTERVAL
+    if spv:
+        return PORT_MIN + PORT_P2P + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_P2P + n * PORT_INTERVAL
 
 
-def rest_port(n):
-    return PORT_MIN + PORT_REST + n * PORT_INTERVAL
+def rest_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_REST + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_REST + n * PORT_INTERVAL
 
 
-def rpc_port(n):
-    return PORT_MIN + PORT_RPC + n * PORT_INTERVAL
+def rpc_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_RPC + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_RPC + n * PORT_INTERVAL
+
+
+def mining_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_MINING + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_MINING + n * PORT_INTERVAL
 
 
 def rpc_url(i, rpchost=None):
