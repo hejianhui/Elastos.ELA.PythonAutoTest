@@ -57,6 +57,10 @@ if __name__ == '__main__':
         _config['HttpJsonPort'] = util.rpc_port(i)
         _config['NodePort'] = util.p2p_port(i)
         _config['MultiCoreNum'] = 1
+        _config['IsTLS'] = True
+        _config['CertPath'] = './cert.pem'
+        _config['KeyPath'] = './cert-key.pem'
+        _config['CAPath'] = './ca.pem'
 
         if i == 0:
             _config['SPVService'] = True
@@ -65,8 +69,8 @@ if __name__ == '__main__':
 
         _pow_config = {}
         _pow_config['MiningSelfPort'] = util.mining_port(i)
-        _pow_config['TestNet'] = False
-        _pow_config['ActiveNet'] = 'MainNet'
+        _pow_config['TestNet'] = True
+        _pow_config['ActiveNet'] = 'RegNet'
         _pow_config['PayToAddr'] = 'EV2aw69HuF27z2prUDQcGxf4i1rNopwbzj'
         _pow_config['AutoMining'] = False
 

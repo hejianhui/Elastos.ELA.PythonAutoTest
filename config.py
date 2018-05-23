@@ -19,6 +19,8 @@ svp_node_name = 'service'
 spv_config_file = 'config.json'
 spv_node_src_path = ['src', 'github.com', 'elastos', 'Elastos.ELA.SPV']
 
+pem_path = '/Users/bocheng/Desktop/Temp/ubuntu/pem'
+pem_file = ['ca.pem', 'cert-key.pem', 'cert.pem']
 
 def func():
     pass

@@ -168,6 +168,9 @@ def deploy(_num, _testpath, spv=False):
 
             shutil.copy(os.path.join(node_src_path, config.node_name), os.path.join(_path, config.node_name))
             shutil.copy(os.path.join(node_src_path, config.config_file), os.path.join(_path, 'config.json'))
+            for pem_file in config.pem_file:
+                shutil.copy(os.path.join(config.pem_path, pem_file), os.path.join(_path, pem_file))
+
         return tmpdir
     else:
         # Deploy exchange node
