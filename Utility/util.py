@@ -209,10 +209,10 @@ def update_config(nodedir, options):
             else:
                 config_json['Configuration'][config_key] = options[config_key]
 
-    # json_str = json.dumps(config_json, sort_keys=True, indent=4, separators=(',', ':'))
+    # json_str = json.dumps(config_json, sort_keys=False, indent=4, separators=(',', ':'))
 
     with open(os.path.join(nodedir, 'config.json'), 'w') as config_output:
-        json.dump(config_json, config_output, sort_keys=True, indent=4, separators=(',', ':'))
+        json.dump(config_json, config_output, sort_keys=False, indent=4, separators=(',', ':'))
 
 
 def sync_blocks(nodes, *, wait=1, timeout=60):

@@ -64,6 +64,8 @@ if __name__ == '__main__':
 
         if i == 0:
             _config['SPVService'] = True
+            _config['SPVNodePort'] = 10866
+
         else:
             _config['SPVService'] = False
 
@@ -85,7 +87,7 @@ if __name__ == '__main__':
         _config['Magic'] = 2018000
         _config['FoundationAddress'] = 'ENUufMgzaPYSPG14HRsT7JviEY7DA7rhAc'
 
-        _config['SeedList'] = ["127.0.0.1:20866"]
+        _config['SeedList'] = ["127.0.0.1:10866"]
 
         _config['HttpInfoPort'] = util.info_port(i, spv=True)
         _config['HttpRestPort'] = util.rest_port(i, spv=True)
@@ -93,11 +95,7 @@ if __name__ == '__main__':
         _config['HttpJsonPort'] = util.rpc_port(i, spv=True)
         _config['NodePort'] = util.p2p_port(i, spv=True)
         _config['MultiCoreNum'] = 1
-
-        if i == 0:
-            _config['SPVService'] = True
-        else:
-            _config['SPVService'] = False
+        _config['SPVService'] = True
 
         _pow_config = {}
         _pow_config['MiningSelfPort'] = util.mining_port(i, spv=True)
