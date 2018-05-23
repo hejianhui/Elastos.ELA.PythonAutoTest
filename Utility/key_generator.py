@@ -15,28 +15,29 @@ from Crypto.Util.number import long_to_bytes
 
 from Utility import utility
 
+INFINITYLEN = 1
+FLAGLEN = 1
+XORYVALUELEN = 32
+COMPRESSEDLEN = 33
+NOCOMPRESSEDLEN = 65
+COMPEVENFLAG = 0x02
+COMPODDFLAG = 0x03
+NOCOMPRESSEDFLAG = 0x04
+P256PARAMA = -3
+EMPTYBYTE = 0x00
 
-class Generator(object):
+STANDARD = 0xac
+MULTISIG = 0xae
+
+UINT168SIZE = 21
+
+
+class Account(object):
     """
     classdocs
     """
-    INFINITYLEN = 1
-    FLAGLEN = 1
-    XORYVALUELEN = 32
-    COMPRESSEDLEN = 33
-    NOCOMPRESSEDLEN = 65
-    COMPEVENFLAG = 0x02
-    COMPODDFLAG = 0x03
-    NOCOMPRESSEDFLAG = 0x04
-    P256PARAMA = -3
-    EMPTYBYTE = 0x00
 
-    STANDARD = 0xac
-    MULTISIG = 0xae
-
-    UINT168SIZE = 21
-
-    def __init__(self):
+    def __init__(self, name="name", password="password"):
 
         """
         Constructor
@@ -46,31 +47,11 @@ class Generator(object):
         self.program_hash = None
         self.address = None
         self.private_key = None
-        self.iv = None
-        self.master_key = None
-        self.name = "./keys.json"
+        self.iv = os.urandom(16)
+        self.master_key = os.urandom(32)
+        self.name = name
 
-    def to_json(self):
-        json_data = {}
-
-        json_data['private_key'] = binascii.b2a_hex(self.private_key).decode("utf-8")
-        json_data['public_key'] = self.public_key.decode("utf-8")
-        json_data['sign_script'] = self.sign_script.decode("utf-8")
-        json_data['program_hash'] = self.program_hash.decode("utf-8")
-        json_data['address'] = self.address.decode("utf-8")
-        json_data['iv'] = binascii.b2a_hex(self.iv).decode("utf-8")
-        json_data['master_key'] = binascii.b2a_hex(self.master_key).decode("utf-8")
-
-        '''
-        json_data['private_key'] = self.private_key
-        json_data['public_key'] = self.public_key
-        json_data['sign_script'] = self.sign_script
-        json_data['program_hash'] = self.program_hash
-        json_data['address'] =  self.address
-        json_data['iv'] = self.iv
-        json_data['master_key'] = self.master_key
-        '''
-        return json_data
+        self.create_standard_key_store(name, password)
 
     def encode_point(self, is_compressed, public_key_ECC):
         public_key_x = public_key_ECC._point._x
@@ -78,31 +59,31 @@ class Generator(object):
 
         if public_key_x is None or public_key_y is None:
             infinity = []
-            for i in range(Generator.INFINITYLEN):
-                infinity.append(Generator.EMPTYBYTE)
+            for i in range(INFINITYLEN):
+                infinity.append(EMPTYBYTE)
             return infinity
         encodedData = []
         if is_compressed:
-            for i in range(Generator.COMPRESSEDLEN):
-                encodedData.append(Generator.EMPTYBYTE)
+            for i in range(COMPRESSEDLEN):
+                encodedData.append(EMPTYBYTE)
         else:
-            for i in range(Generator.NOCOMPRESSEDLEN):
-                encodedData.append(Generator.EMPTYBYTE)
+            for i in range(NOCOMPRESSEDLEN):
+                encodedData.append(EMPTYBYTE)
             y_bytes = public_key_y.to_bytes()
-            for i in range(Generator.NOCOMPRESSEDLEN - len(y_bytes), Generator.NOCOMPRESSEDLEN):
-                encodedData[i] = y_bytes[i - Generator.NOCOMPRESSEDLEN + len(y_bytes)]
+            for i in range(NOCOMPRESSEDLEN - len(y_bytes), NOCOMPRESSEDLEN):
+                encodedData[i] = y_bytes[i - NOCOMPRESSEDLEN + len(y_bytes)]
         x_bytes = public_key_x.to_bytes()
         l = len(x_bytes)
-        for i in range(Generator.COMPRESSEDLEN - l, Generator.COMPRESSEDLEN):
-            encodedData[i] = x_bytes[i - Generator.COMPRESSEDLEN + l]
+        for i in range(COMPRESSEDLEN - l, COMPRESSEDLEN):
+            encodedData[i] = x_bytes[i - COMPRESSEDLEN + l]
 
         if is_compressed:
             if public_key_y % 2 == 0:
-                encodedData[0] = Generator.COMPEVENFLAG
+                encodedData[0] = COMPEVENFLAG
             else:
-                encodedData[0] = Generator.COMPODDFLAG
+                encodedData[0] = COMPODDFLAG
         else:
-            encodedData[0] = Generator.NOCOMPRESSEDFLAG
+            encodedData[0] = NOCOMPRESSEDFLAG
         return encodedData
 
     '''
@@ -171,22 +152,6 @@ class Generator(object):
         hex_value = binascii.hexlify(bytearray(encoded))
         return hex_value
 
-    def create_iv(self):
-        iv = os.urandom(16)
-        self.iv = iv
-        '''
-        print("iv: " + binascii.b2a_hex(self.iv).decode())
-        '''
-        return iv
-
-    def create_mastertkey(self):
-        master_key = os.urandom(32)
-        self.master_key = master_key
-        '''
-        print("master_key: " + binascii.b2a_hex(self.master_key).decode())
-        '''
-        return master_key
-
     def create_multi_key_store(self, m=0, n=0, name="", password=""):
         nm = name
         p = password
@@ -209,8 +174,8 @@ class Generator(object):
             self.import_key_info(key_path=name)
             return
 
-        iv_bytes = self.create_iv()
-        master_key_bytes = self.create_mastertkey()
+        iv_bytes = self.iv
+        master_key_bytes = self.master_key
         password_key_bytes = utility.to_aes_key(str.encode(password))
         password_hash = SHA256.new(password_key_bytes)
         password_hash_bytes = password_hash.digest()
@@ -226,14 +191,6 @@ class Generator(object):
         self.private_key_byte_array = private_key_byte_array
         public_key_ECC = key_pair.public_key()
 
-        '''
-        print("private_key_dec:" + str(private_key_dec) + "\n")
-        print("private_key_bytes:" + str(private_key_bytes) + "\n")
-        print("len_private_key_bytes:" + str(len(private_key_bytes)) + "\n")
-        print("private_key_byte_array" + str(private_key_byte_array) + "\n")
-        print("public_key_ECC:" + str(public_key_ECC) + "\n")
-        '''
-
         private_key_encrypted_bytes = self.encrypt_private_key(master_key_bytes, private_key_bytes,
                                                                public_key_ECC, iv_bytes)
         self.private_key_encrypted_bytes = private_key_encrypted_bytes
@@ -242,6 +199,25 @@ class Generator(object):
         print("private_key: " + binascii.b2a_hex(self.private_key).decode())
         '''
         self.init_standard(public_key_ECC)
+
+        self.store_wallet_data()
+
+    def store_wallet_data(self):
+        if not os.path.exists("./wallets"):
+            os.mkdir("./wallets")
+
+        attributes = dict(
+            {
+                'private_key': utility.bytes_to_hex_string(self.private_key),
+                'public_key': utility.bytes_to_hex_string(self.public_key),
+                'programhash': utility.bytes_to_hex_string(self.program_hash),
+                'master_key': utility.bytes_to_hex_string(self.master_key),
+                'iv': utility.bytes_to_hex_string(self.iv),
+                'address': utility.bytes_to_hex_string(self.address)
+            }
+        )
+        with open('./wallets/' + self.name + ".json", 'w') as f:
+            f.write(json.dumps(attributes))
 
     def encrypt_master_key(self, iv, password_key, master_key):
         master_key_encrypted = self.aes_encrypt(master_key, password_key, iv)
@@ -317,7 +293,7 @@ class Generator(object):
         buf.append(bytes([len(content)]))
         for i in range(len(content)):
             buf.append(bytes([content[i]]))
-        buf.append(bytes([Generator.STANDARD]))
+        buf.append(bytes([STANDARD]))
         return buf
 
     def create_multi_redeem_script(self, m, eccs):
