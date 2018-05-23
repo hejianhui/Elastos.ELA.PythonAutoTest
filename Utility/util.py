@@ -12,6 +12,7 @@
 import os
 import datetime
 import json
+import requests
 import shutil
 import time
 
@@ -194,6 +195,7 @@ def deploy(_num, _testpath, spv=False):
                 shutil.copy(os.path.join(node_src_path, config.config_file), os.path.join(_path, 'config.json'))
             return _testpath
 
+
 def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))
 
@@ -261,6 +263,7 @@ def restore_wallet(pk_int):
     if eccKey._d != pk_int:
         print("Error")
 
+
 # 批量生成地址，输出以address为key，private_key_int及ECCkey为value的字典
 def generage_address(num):
     address_dict = {}
@@ -268,6 +271,7 @@ def generage_address(num):
         add, pk_int, ecc = get_new_address()
         address_dict[add] = {"pk_int": pk_int, "ecc": ecc}
     return address_dict
+
 
 # 导出地址及ECCkey._d字典
 def export_addresses(add_dict, path='./address.json'):
@@ -293,16 +297,53 @@ def export_addresses(add_dict, path='./address.json'):
         with open(path, 'w') as address_output:
             json.dump(address_json, address_output, sort_keys=True, indent=4, separators=(',', ':'))
 
+
 def import_addresses(path='./address.json'):
     if not os.path.exists(path):
         print("There is no backup file address.json")
         return None
     else:
-        with open(path,'r') as address_file:
+        with open(path, 'r') as address_file:
             address_json = address_file.read()
             address_json = json.loads(address_json.strip())
-            print(type(address_json),address_json)
+            print(type(address_json), address_json)
         return address_json
+
+
+def get_utxo(address):
+    r = requests.get("http://127.0.0.1:10334/api/v1/asset/utxos/" + address)
+    if r.json()['Desc'] == 'Success':
+        for _list in r.json()['Result']:
+            if _list['AssetName'] == 'ELA':
+                return _list['Utxo']
+    else:
+        return []
+
+
+def get_transaction(txid):
+    r = requests.get("http://127.0.0.1:10334/api/v1/transaction/" + txid)
+    if r.json()['Desc'] == 'Success':
+        return r.json()['Result']
+    else:
+        return None
+
+
+# 利用交易信息中的确认数判断UTXO是否可用，后续可更改为利用blockhash查询区块高度，进而判断UTXO是否可用
+def utxo_filter(utxos):
+    utxo_useful = []
+    for utxo in utxos:
+        txid = utxo["Txid"]
+        trans = get_transaction(txid)
+        if trans['confirmations'] > 100:
+            utxo_useful.append(utxo)
+
+    return utxo_useful
+
+
+def get_useful_utxo(address):
+    utxos = get_utxo(address)
+    return utxo_filter(utxos)
+
 
 class Main():
     def __init__(self):
