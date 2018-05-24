@@ -43,22 +43,19 @@ class Node(object):
     will be dispatched to the RPC and Restful connections.
     """
 
-    def __init__(self, i, dirname, httptimeout=30, configurations={}):
+    def __init__(self, i, dirname, httptimeout=30, configuration={}):
         # coverage_dir用于保存log信息，暂未使用
         self.index = i
-        self.datadir = os.path.join(dirname, "node" + str(i))
+        self.datadir = os.path.join(dirname, "ela" + str(i))
 
         print(i, self.datadir)
 
         # rpchost用于构建get_rpc_proxy实例
         # self.rpchost = rpchost if rpchost else None
         self.rpc_timeout = httptimeout
-        self.spv = configurations.get('OpenService')
         self._running = False
         self.process = None
-        self.rpc_port = utility.rpc_port(i)
-        self.rest_port = utility.rest_port(i)
-        self.p2p_port = utility.p2p_port(i)
+        self.configuration = configuration
 
         self.log = logging.getLogger('TestFramework.node%d' % i)
 
@@ -85,7 +82,6 @@ class Node(object):
         except subprocess.SubprocessError as e:
             self.log.exception("Unable to stop node. %s" % e)
         # self.running = False
-        del self.p2ps[:]
         self._running = False
 
     ### 封装的RPC方法，如RPC接口变更，对Method及Parameter进行相应修改即可

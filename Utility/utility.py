@@ -60,6 +60,7 @@ PORT_MINING = 339
 PORT_INTERVAL = 1000
 SPV_INTERVAL = 10000
 
+
 def is_file_exist(file_path):
     return os.path.exists(file_path)
 
@@ -291,51 +292,36 @@ def rpc_url(i, rpchost=None):
 # Node functions
 ################
 
-def deploy(count, testpath="./test", spv=False):
-    # Get Node source path
-    project_path = os.environ.get('GOPATH') + '/'.join(config.PROJECT_PATH)
-    print("node path:", project_path)
 
-    if not spv:
-        # Deploy full node
-        # Create base test directory
-        # local = os.getcwd()
-        node_path = "%s/elastos_test_runner_%s" % (testpath, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        os.makedirs(node_path)
-        print("Temp dir is:", node_path, os.path.exists(node_path))
-        nodes_list = []
+def deploy(configuration_lists=list()):
+    """
+    this function receives a list of dictionary ,
+    in which each dictionary is composed of node name and its configuration.
+    and configuration is also a dictionary.
+    :param configuration_lists:
+    :return: list of node objects
+    """
 
-        for i in range(count):
-            path = os.path.join(node_path, "node" + str(i))
-            if not os.path.isdir(path):
-                os.makedirs(path)
-            nodes_list.append(node.Node(i, node_path))
+    project_path = os.environ.get('GOPATH') + '/'.join(config.ELA_PATH)
+    print("source code path:", project_path)
 
-            shutil.copy(os.path.join(project_path, config.NODE_NAME), os.path.join(path, config.NODE_NAME))
-            shutil.copy(os.path.join(project_path, config.CONFIGURATION_FILE), os.path.join(path, 'config.json'))
+    node_path = "%s/elastos_test_runner_%s" % ("./test", datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+    os.makedirs(node_path)
+    print("Temp dir is:", node_path)
+    nodes_list = []
 
-        return nodes_list
-    else:
-        # Deploy exchange node
-        if os.path.exists(testpath):
-            for i in range(count):
-                path = os.path.join(testpath, "spv" + str(i))
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+    for index, item in enumerate(configuration_lists):
+        name = item['name']
+        path = os.path.join(node_path, name + str(index))
+        os.makedirs(path)
+        shutil.copy(os.path.join(project_path, name), os.path.join(path))
+        configuration = item['config']
+        with open(path + '/config.json', 'w+') as f:
+            f.write(json.dumps(configuration, indent=4))
 
-                shutil.copy(os.path.join(project_path, config.NODE_NAME), os.path.join(path, config.NODE_NAME))
-                shutil.copy(os.path.join(project_path, config.CONFIGURATION_FILE), os.path.join(path, 'config.json'))
-            return testpath
-        else:
-            os.makedirs(testpath)
-            for i in range(count):
-                path = os.path.join(testpath, "spv" + str(i))
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+        nodes_list.append(node.Node(i=index, dirname=node_path, configuration=configuration))
 
-                shutil.copy(os.path.join(project_path, config.NODE_NAME), os.path.join(path, config.NODE_NAME))
-                shutil.copy(os.path.join(project_path, config.CONFIGURATION_FILE), os.path.join(path, 'config.json'))
-            return testpath
+    return nodes_list
 
 
 def get_datadir_path(dirname, n):
