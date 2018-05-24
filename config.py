@@ -9,27 +9,16 @@
 @time: 2018/5/9 14:54
 """
 
-node_name = 'ela'
-config_file = 'config.json.sample'
+NODE_NAME = 'ela'
+CONFIGURATION_FILE = 'config.json.sample'
 # config_file = 'config.json'
-node_src_path = ['src', 'github.com', 'elastos', 'Elastos.ELA']
+PROJECT_PATH = ['src', 'github.com', 'elastos', 'Elastos.ELA']
 # node_src_path = ['src', 'Elastos.ELA']
 
-svp_node_name = 'service'
-spv_config_file = 'config.json'
-spv_node_src_path = ['src', 'github.com', 'elastos', 'Elastos.ELA.SPV']
+SPV_NODE_NAME = 'service'
+SPV_CONFIGURATION_FILE = 'config.json'
+SPV_NODE_PATH = ['src', 'github.com', 'elastos', 'Elastos.ELA.SPV']
+TEST_PATH = './test'
 
 pem_path = '/Users/bocheng/Desktop/Temp/ubuntu/pem'
 pem_file = ['ca.pem', 'cert-key.pem', 'cert.pem']
-
-def func():
-    pass
-
-
-class Main():
-    def __init__(self):
-        pass
-
-
-if __name__ == '__main__':
-    pass

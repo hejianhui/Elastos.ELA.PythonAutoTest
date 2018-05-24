@@ -1,15 +1,26 @@
-'''
+#!/usr/bin/env python3
+# encoding: utf-8
+"""
 Created on Apr 11, 2018
 
 @author: bopeng
-'''
+"""
 import os
+import datetime
+import json
+import requests
+import shutil
+import time
+import config
+
+from . import key_generator
+
 from Crypto.Hash import SHA256
 from Crypto.Hash import RIPEMD160
 import binascii
 from Utility import base58
+from Utility import node
 from Crypto.Signature import DSS
-import struct
 
 INFINITYLEN = 1
 FLAGLEN = 1
@@ -34,6 +45,20 @@ Recrd = bytes([0x03])
 Deploy = bytes([0x04])
 PUSH1 = 0x51
 
+# The maximum number of nodes a single test can spawn
+MAX_NODES = 8
+# Don't assign rpc or p2p ports lower than this
+PORT_MIN = 10000
+# The number of ports to "reserve" for p2p and rpc, each
+PORT_INFO = 333
+PORT_REST = 334
+PORT_WS = 335
+PORT_RPC = 336
+PORT_P2P = 338
+PORT_MINING = 339
+# The number of port's interval
+PORT_INTERVAL = 1000
+SPV_INTERVAL = 10000
 
 def is_file_exist(file_path):
     return os.path.exists(file_path)
@@ -202,3 +227,261 @@ def utf_to_rawint(value):
         digit = value[len(value) - i - 1]
         result += digit * 256 ** i
     return result
+
+
+# Assert functions
+##################
+
+def assert_equal(thing1, thing2, *args):
+    if thing1 != thing2 or any(thing1 != arg for arg in args):
+        raise AssertionError("not(%s)" % " == ".join(str(arg) for arg in (thing1, thing2) + args))
+
+
+# Utility functions
+###################
+
+def info_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_INFO + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_INFO + n * PORT_INTERVAL
+
+
+def ws_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_WS + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_WS + n * PORT_INTERVAL
+
+
+def p2p_port(n, spv=False):
+    assert (n <= MAX_NODES)
+    if spv:
+        return PORT_MIN + PORT_P2P + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_P2P + n * PORT_INTERVAL
+
+
+def rest_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_REST + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_REST + n * PORT_INTERVAL
+
+
+def rpc_port(n, spv=False):
+    if spv:
+        return PORT_MIN + PORT_RPC + n * PORT_INTERVAL + SPV_INTERVAL
+    else:
+        return PORT_MIN + PORT_RPC + n * PORT_INTERVAL
+
+
+def rpc_url(i, rpchost=None):
+    host = '127.0.0.1'
+    port = rpc_port(i)
+    if rpchost:
+        parts = rpchost.split(':')
+        if len(parts) == 2:
+            host, port = parts
+        else:
+            host = rpchost
+    return "http://%s:%d" % (host, int(port))
+
+
+# Node functions
+################
+
+def deploy(count, testpath="./test", spv=False):
+    # Get Node source path
+    project_path = os.environ.get('GOPATH') + '/'.join(config.PROJECT_PATH)
+    print("node path:", project_path)
+
+    if not spv:
+        # Deploy full node
+        # Create base test directory
+        # local = os.getcwd()
+        node_path = "%s/elastos_test_runner_%s" % (testpath, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        os.makedirs(node_path)
+        print("Temp dir is:", node_path, os.path.exists(node_path))
+        nodes_list = []
+
+        for i in range(count):
+            path = os.path.join(node_path, "node" + str(i))
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            nodes_list.append(node.Node(i, node_path))
+
+            shutil.copy(os.path.join(project_path, config.NODE_NAME), os.path.join(path, config.NODE_NAME))
+            shutil.copy(os.path.join(project_path, config.CONFIGURATION_FILE), os.path.join(path, 'config.json'))
+
+        return nodes_list
+    else:
+        # Deploy exchange node
+        if os.path.exists(testpath):
+            for i in range(count):
+                path = os.path.join(testpath, "spv" + str(i))
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+
+                shutil.copy(os.path.join(project_path, config.NODE_NAME), os.path.join(path, config.NODE_NAME))
+                shutil.copy(os.path.join(project_path, config.CONFIGURATION_FILE), os.path.join(path, 'config.json'))
+            return testpath
+        else:
+            os.makedirs(testpath)
+            for i in range(count):
+                path = os.path.join(testpath, "spv" + str(i))
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+
+                shutil.copy(os.path.join(project_path, config.NODE_NAME), os.path.join(path, config.NODE_NAME))
+                shutil.copy(os.path.join(project_path, config.CONFIGURATION_FILE), os.path.join(path, 'config.json'))
+            return testpath
+
+
+def get_datadir_path(dirname, n):
+    return os.path.join(dirname, "node" + str(n))
+
+
+def update_config(nodedir, options):
+    with open(os.path.join(nodedir, 'config.json'), "r+b") as config_file:
+        config_json = config_file.read()
+        config_json = json.loads(config_json.decode("utf-8-sig").strip())
+        for config_key in options.keys():
+            if isinstance(options[config_key], dict):
+                for _key in options[config_key].keys():
+                    config_json['Configuration'][config_key][_key] = options[config_key][_key]
+            else:
+                config_json['Configuration'][config_key] = options[config_key]
+
+    # json_str = json.dumps(config_json, sort_keys=False, indent=4, separators=(',', ':'))
+
+    with open(os.path.join(nodedir, 'config.json'), 'w') as config_output:
+        json.dump(config_json, config_output, sort_keys=False, indent=4, separators=(',', ':'))
+
+
+def sync_blocks(nodes, *, wait=1, timeout=60):
+    """
+    Wait until everybody has the same tip.
+
+    sync_blocks needs to be called with an rpc_connections set that has least
+    one node already synced to the latest, stable tip, otherwise there's a
+    chance it might return before all nodes are stably synced.
+    """
+    stop_time = time.time() + timeout
+    while time.time() <= stop_time:
+        best_hash = [nodes[i].get_best_block_hash() for i in range(len(nodes))]
+        if best_hash.count(best_hash[0]) == len(nodes):
+            return
+        time.sleep(wait)
+    raise AssertionError("Block sync timed out:{}".format("".join("\n  {!r}".format(b) for b in best_hash)))
+
+
+def get_new_address():
+    key_gen = key_generator.Generator()
+    eccKey = key_gen.create_key_pair()
+    public_key = eccKey.public_key()
+
+    redeem_script = key_gen.create_standard_redeem_script(public_key)
+    program_hash = script_to_program_hash(redeem_script)
+    address = program_hash_to_address(program_hash).encode()
+
+    return address.decode(), eccKey._d, eccKey
+
+
+def restore_wallet(pk_int):
+    key_gen = key_generator.Generator()
+    eccKey = key_gen.create_public_key_with_private(pk_int)
+
+    public_key = eccKey.public_key()
+
+    redeem_script = key_gen.create_standard_redeem_script(public_key)
+
+    program_hash = script_to_program_hash(redeem_script)
+    address = program_hash_to_address(program_hash).encode()
+
+    print(address.decode())
+    print(type(eccKey._d), eccKey._d)
+    print(type(pk_int), pk_int)
+    if eccKey._d != pk_int:
+        print("Error")
+
+
+# 批量生成地址，输出以address为key，private_key_int及ECCkey为value的字典
+def generage_address(num):
+    address_dict = {}
+    for i in range(num):
+        add, pk_int, ecc = get_new_address()
+        address_dict[add] = {"pk_int": pk_int, "ecc": ecc}
+    return address_dict
+
+
+# 导出地址及ECCkey._d字典
+def export_addresses(add_dict, path='./address.json'):
+    if is_file_exist(path):
+        with open(path) as address_file:
+            address_json = address_file.read()
+            address_json = json.loads(address_json.strip())
+            for add in add_dict.keys():
+                if add in address_json.keys():
+                    continue
+                else:
+                    address_json[add] = {"pk_int": str(add_dict[add]["pk_int"])}
+
+        with open(path, 'w') as address_output:
+            json.dump(address_json, address_output, sort_keys=True, indent=4, separators=(',', ':'))
+
+    else:
+
+        address_json = {}
+        for add in add_dict.keys():
+            address_json[add] = {"pk_int": str(add_dict[add]["pk_int"])}
+        print(address_json)
+        with open(path, 'w') as address_output:
+            json.dump(address_json, address_output, sort_keys=True, indent=4, separators=(',', ':'))
+
+
+def import_addresses(path='./address.json'):
+    if not os.path.exists(path):
+        print("There is no backup file address.json")
+        return None
+    else:
+        with open(path, 'r') as address_file:
+            address_json = address_file.read()
+            address_json = json.loads(address_json.strip())
+            print(type(address_json), address_json)
+        return address_json
+
+
+def get_utxo(address):
+    r = requests.get("http://127.0.0.1:10334/api/v1/asset/utxos/" + address)
+    if r.json()['Desc'] == 'Success':
+        for _list in r.json()['Result']:
+            if _list['AssetName'] == 'ELA':
+                return _list['Utxo']
+    else:
+        return []
+
+
+def get_transaction(txid):
+    r = requests.get("http://127.0.0.1:10334/api/v1/transaction/" + txid)
+    if r.json()['Desc'] == 'Success':
+        return r.json()['Result']
+    else:
+        return None
+
+
+# 利用交易信息中的确认数判断UTXO是否可用，后续可更改为利用blockhash查询区块高度，进而判断UTXO是否可用
+def utxo_filter(utxos):
+    utxo_useful = []
+    for utxo in utxos:
+        txid = utxo["Txid"]
+        trans = get_transaction(txid)
+        if trans['confirmations'] > 100:
+            utxo_useful.append(utxo)
+
+    return utxo_useful
+
+
+def get_useful_utxo(address):
+    utxos = get_utxo(address)
+    return utxo_filter(utxos)

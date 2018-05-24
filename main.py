@@ -599,7 +599,7 @@ if __name__ == '__main__':
                 'AutoMining': False,
                 'ActiveNet': 'MainNet'
             }
-            nodes[i] = node.Node(i, dirname, host={}, timewait=60, binary=config.node_name, stderr=None,
+            nodes[i] = node.Node(i, dirname, host={}, timewait=60, name=config.NODE_NAME, stderr=None,
                                  extra_conf=_config)
             # print(i, 'nodes--1 (pid={})'.format(nodes[i].process.pid))
             # print(type(nodes[i].process.pid))

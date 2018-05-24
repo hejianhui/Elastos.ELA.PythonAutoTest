@@ -20,22 +20,15 @@ import time
 import urllib.parse
 
 import config
-from .util import (
-    assert_equal,
-    rpc_port,
-    rest_port,
-    p2p_port,
-    get_rpc_proxy,
-    rpc_url,
-    update_config,
-)
+from Utility import utility
 from .authproxy import JSONRPCException
 
-dev_null = open(os.devnull, 'w')
+DEV_NULL = open(os.devnull, 'w')
+ELA_NODE_NAME = 'ela'
 
 
 class Node(object):
-    '''
+    """
     A class for representing a Elastos node.
 
     This class contains:
@@ -48,63 +41,42 @@ class Node(object):
 
     To make things easier for the test writer, any unrecognized messages
     will be dispatched to the RPC and Restful connections.
-    '''
+    """
 
-    def __init__(self, i, dirname, host, timewait, binary, stderr, spv=False, mocktime=60, coverage_dir=None,
-                 extra_conf=None, extra_args=None, use_cli=False):
+    def __init__(self, i, dirname, httptimeout=30, configurations={}):
         # coverage_dir用于保存log信息，暂未使用
         self.index = i
-        if not spv:
-            self.datadir = os.path.join(dirname, "node" + str(i))
-        else:
-            self.datadir = os.path.join(dirname, "spv" + str(i))
+        self.datadir = os.path.join(dirname, "node" + str(i))
+
         print(i, self.datadir)
 
         # rpchost用于构建get_rpc_proxy实例
         # self.rpchost = rpchost if rpchost else None
-        if timewait:
-            self.rpc_timeout = timewait
-        else:
-            # Wait for up to 60 seconds for the RPC server to respond
-            self.rpc_timeout = 60
-        if binary is None:
-            self.binary = config.node_name
-        else:
-            self.binary = binary
-        self.stderr = stderr
-        # self.coverage_dir = coverage_dir
-        # self.coverage_dir = None
-        if extra_conf != None:
-            update_config(self.datadir, extra_conf)
-
-        self.running = False
+        self.rpc_timeout = httptimeout
+        self.spv = configurations.get('OpenService')
+        self._running = False
         self.process = None
-        self.port_rpc = rpc_port(i)
-        self.port_rest = rest_port(i)
-        self.port_p2p = p2p_port(i)
-        self.url = "http://127.0.0.1" + ":" + str(self.port_rpc)
+        self.rpc_port = utility.rpc_port(i)
+        self.rest_port = utility.rest_port(i)
+        self.p2p_port = utility.p2p_port(i)
 
         self.log = logging.getLogger('TestFramework.node%d' % i)
 
-        # To enable when the p2p method is done
-        self.p2ps = []
-
-    # def __getattr__(self, name):
-    #     """Dispatches any unrecognised messages to the RPC connection or a restful interface."""
-    #     if self.running:
-    #         return getattr(self.rpc, name)
+    def is_running(self):
+        return self._running
 
     def start(self):
         """Start the node"""
-        self.process = subprocess.Popen('./' + self.binary, stdout=dev_null, shell=True, cwd=self.datadir)
-        self.running = True
-        self.log.debug("%s started, waiting for RPC to come up" % self.binary)
+        self.process = subprocess.Popen('./' + ELA_NODE_NAME, stdout=DEV_NULL, shell=True, cwd=self.datadir)
+        self._running = True
+        self.log.info("ela node %s started, waiting for RPC to come up" % self.index)
 
     def stop(self):
         """stop the node"""
-        if not self.running:
+        if not self._running:
+            self.log.info("warning: node is already stopped, does not need to stop anymore.")
             return
-        self.log.debug("Stopping node")
+        self.log.info("Stopping node")
         try:
             # self.stop()
             self.process.terminate()
@@ -114,26 +86,7 @@ class Node(object):
             self.log.exception("Unable to stop node. %s" % e)
         # self.running = False
         del self.p2ps[:]
-        self.running = False
-
-    def is_node_stopped(self):
-        """Checks whether the node has stopped.
-
-        Returns True if the node has stopped. False otherwise.
-        This method is responsible for freeing resources (self.process)."""
-        if not self.running:
-            return True
-        return_code = self.process.poll()
-        print("node return code is", return_code)
-        if return_code is None:
-            return False
-
-        # process has stopped. Assert that it didn't return an error code.
-        assert_equal(return_code, 0)
-        self.running = False
-        self.process = None
-        self.log.debug("Node stopped")
-        return True
+        self._running = False
 
     ### 封装的RPC方法，如RPC接口变更，对Method及Parameter进行相应修改即可
     ## Interface for mining
@@ -269,7 +222,7 @@ class Node(object):
 
 
 class SPVNode(object):
-    '''
+    """
     A class for representing a Elastos SPV node.
 
     This class contains:
@@ -282,10 +235,9 @@ class SPVNode(object):
 
     To make things easier for the test writer, any unrecognized messages
     will be dispatched to the RPC and Restful connections.
-    '''
+    """
 
-    def __init__(self, i, dirname, host, timewait, binary, stderr, mocktime=60, coverage_dir=None, extra_conf=None,
-                 extra_args=None, use_cli=False):
+    def __init__(self, i, dirname, rpc_timeout=30, extra_conf=None):
         # coverage_dir用于保存log信息，暂未使用
         self.index = i
         self.datadir = os.path.join(dirname, "spvnode" + str(i))
@@ -293,27 +245,17 @@ class SPVNode(object):
 
         # rpchost用于构建get_rpc_proxy实例
         # self.rpchost = rpchost if rpchost else None
-        if timewait:
-            self.rpc_timeout = timewait
-        else:
-            # Wait for up to 60 seconds for the RPC server to respond
-            self.rpc_timeout = 60
-        if binary is None:
-            self.binary = config.svp_node_name
-        else:
-            self.binary = binary
-        self.stderr = stderr
-        # self.coverage_dir = coverage_dir
-        # self.coverage_dir = None
-        if extra_conf != None:
-            update_config(self.datadir, extra_conf)
+        self.rpc_timeout = rpc_timeout
+        self.name = config.SPV_NODE_NAME
 
-        self.running = False
+        if extra_conf != None:
+            utility.update_config(self.datadir, extra_conf)
+
+        self._running = False
         self.process = None
-        self.port_rpc = rpc_port(i)
-        self.port_rest = rest_port(i)
-        self.port_p2p = p2p_port(i)
-        self.url = "http://127.0.0.1" + ":" + str(self.port_rpc)
+        self.rpc_port = utility.rpc_port(i)
+        self.rest_port = utility.rest_port(i)
+        self.p2p_port = utility.p2p_port(i)
 
         self.log = logging.getLogger('TestFramework.node%d' % i)
 
@@ -325,9 +267,12 @@ class SPVNode(object):
     #     if self.running:
     #         return getattr(self.rpc, name)
 
+    def is_running(self):
+        return self._running
+
     def start(self):
         """Start the node"""
-        self.process = subprocess.Popen('./' + self.binary, stdout=dev_null, shell=True, cwd=self.datadir)
+        self.process = subprocess.Popen('./' + self.binary, stdout=DEV_NULL, shell=True, cwd=self.datadir)
         self.running = True
         self.log.debug("%s started, waiting for RPC to come up" % self.binary)
 
@@ -335,36 +280,14 @@ class SPVNode(object):
         """stop the node"""
         if not self.running:
             return
-        self.log.debug("Stopping node")
+        self.log.info("Stopping node")
         try:
-            # self.stop()
             self.process.terminate()
-            # self.process.kill()
-        # except http.client.CannotSendRequest:
         except subprocess.SubprocessError as e:
             self.log.exception("Unable to stop node. %s" % e)
         # self.running = False
         del self.p2ps[:]
         self.running = False
-
-    def is_node_stopped(self):
-        """Checks whether the node has stopped.
-
-        Returns True if the node has stopped. False otherwise.
-        This method is responsible for freeing resources (self.process)."""
-        if not self.running:
-            return True
-        return_code = self.process.poll()
-        print("node return code is", return_code)
-        if return_code is None:
-            return False
-
-        # process has stopped. Assert that it didn't return an error code.
-        assert_equal(return_code, 0)
-        self.running = False
-        self.process = None
-        self.log.debug("Node stopped")
-        return True
 
     ### 封装的RPC方法，如RPC接口变更，对Method及Parameter进行相应修改即可
     ## Interface for querying information

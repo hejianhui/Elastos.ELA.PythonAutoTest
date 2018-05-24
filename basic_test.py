@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
         _config['PowConfiguration'] = _pow_config
 
-        nodes[i] = node.Node(i, test_dir, host={}, timewait=60, binary=config.node_name, stderr=None, spv=False,
+        nodes[i] = node.Node(i, test_dir, host={}, timewait=60, name=config.NODE_NAME, stderr=None, spv=False,
                              extra_conf=_config)
 
     # Exchange Node
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
         _config['PowConfiguration'] = _pow_config
 
-        spv[i] = node.Node(i, test_dir, host={}, timewait=60, binary=config.node_name, stderr=None, spv=True,
+        spv[i] = node.Node(i, test_dir, host={}, timewait=60, name=config.NODE_NAME, stderr=None, spv=True,
                            extra_conf=_config)
     # print(nodes)
     #
