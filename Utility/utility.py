@@ -13,7 +13,7 @@ import shutil
 import time
 import config
 
-from . import key_generator
+from . import account
 
 from Crypto.Hash import SHA256
 from Crypto.Hash import RIPEMD160
@@ -108,7 +108,7 @@ def program_hash_to_address(program_hash_bytes):
     return encoded
 
 
-def address_to_unit168(address):
+def address_to_programhash(address):
     decoded = base58.b58decode_check(address)
     ph = decoded[0:21]
     addr = program_hash_to_address(ph)
@@ -241,58 +241,6 @@ def assert_equal(thing1, thing2, *args):
 # Utility functions
 ###################
 
-def info_port(n, spv=False):
-    if spv:
-        return PORT_MIN + PORT_INFO + n * PORT_INTERVAL + SPV_INTERVAL
-    else:
-        return PORT_MIN + PORT_INFO + n * PORT_INTERVAL
-
-
-def ws_port(n, spv=False):
-    if spv:
-        return PORT_MIN + PORT_WS + n * PORT_INTERVAL + SPV_INTERVAL
-    else:
-        return PORT_MIN + PORT_WS + n * PORT_INTERVAL
-
-
-def p2p_port(n, spv=False):
-    assert (n <= MAX_NODES)
-    if spv:
-        return PORT_MIN + PORT_P2P + n * PORT_INTERVAL + SPV_INTERVAL
-    else:
-        return PORT_MIN + PORT_P2P + n * PORT_INTERVAL
-
-
-def rest_port(n, spv=False):
-    if spv:
-        return PORT_MIN + PORT_REST + n * PORT_INTERVAL + SPV_INTERVAL
-    else:
-        return PORT_MIN + PORT_REST + n * PORT_INTERVAL
-
-
-def rpc_port(n, spv=False):
-    if spv:
-        return PORT_MIN + PORT_RPC + n * PORT_INTERVAL + SPV_INTERVAL
-    else:
-        return PORT_MIN + PORT_RPC + n * PORT_INTERVAL
-
-
-def rpc_url(i, rpchost=None):
-    host = '127.0.0.1'
-    port = rpc_port(i)
-    if rpchost:
-        parts = rpchost.split(':')
-        if len(parts) == 2:
-            host, port = parts
-        else:
-            host = rpchost
-    return "http://%s:%d" % (host, int(port))
-
-
-# Node functions
-################
-
-
 def deploy(configuration_lists=list()):
     """
     this function receives a list of dictionary ,
@@ -319,7 +267,7 @@ def deploy(configuration_lists=list()):
         with open(path + '/config.json', 'w+') as f:
             f.write(json.dumps(configuration, indent=4))
 
-        nodes_list.append(node.Node(i=index, dirname=node_path, configuration=configuration))
+        nodes_list.append(node.Node(i=index, dirname=node_path, configuration=configuration['Configuration']))
 
     return nodes_list
 
@@ -363,7 +311,7 @@ def sync_blocks(nodes, *, wait=1, timeout=60):
 
 
 def get_new_address():
-    key_gen = key_generator.Generator()
+    key_gen = account.Generator()
     eccKey = key_gen.create_key_pair()
     public_key = eccKey.public_key()
 
@@ -375,7 +323,7 @@ def get_new_address():
 
 
 def restore_wallet(pk_int):
-    key_gen = key_generator.Generator()
+    key_gen = account.Generator()
     eccKey = key_gen.create_public_key_with_private(pk_int)
 
     public_key = eccKey.public_key()

@@ -1,0 +1,17 @@
+{
+	"target_url" : "http://127.0.0.1",
+	"target_port": "10334",
+	"headers" : 
+	{
+		"content-type": "application/json"
+	},
+	"method":"getcurrentheight",
+	"params":
+	{
+		"address": "EdBHoLbG2CYB7eR3QQYHzexw5vUvVBbz6D",
+		"asset_id":"a3d0eaa466df74983b5d7c543de6904f4c9418ead5ffd6d25814234a96db37b0",
+		"x":"x",
+		"d":"d"
+	},
+	"api_path" : "/api/v1/asset/balance/" 
+}

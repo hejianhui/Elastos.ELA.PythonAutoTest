@@ -37,7 +37,7 @@ class Account(object):
     classdocs
     """
 
-    def __init__(self, name="name", password="password"):
+    def __init__(self, name="name", password="password", type=STANDARD, m=0, n=0):
 
         """
         Constructor
@@ -50,8 +50,12 @@ class Account(object):
         self.iv = os.urandom(16)
         self.master_key = os.urandom(32)
         self.name = name
-
-        self.create_standard_key_store(name, password)
+        if type is STANDARD:
+            self.create_standard_key_store(name, password)
+        elif type is MULTISIG:
+            self.create_multi_key_store(m, n, name, password)
+        else:
+            raise Exception('invalid transaction type!')
 
     def encode_point(self, is_compressed, public_key_ECC):
         public_key_x = public_key_ECC._point._x
@@ -116,12 +120,12 @@ class Account(object):
         elif encoded_data[0] == 0x02 or encoded_data[0] == 0x03:
             y_tilde = int(encoded_data[0] & 1)
             print("compressed\n")
-            pub_key = self.decompress(y_tilde, encoded_data[self.FLAGLEN: self.FLAGLEN + self.XORYVALUELEN],
+            pub_key = self.decompress(y_tilde, encoded_data[FLAGLEN: FLAGLEN + XORYVALUELEN],
                                       self.ECCkey)
             return pub_key
         elif encoded_data[0] == 0x04 or encoded_data[0] == 0x05 or encoded_data[0] == 0x06:
-            pub_key_x = encoded_data[self.FLAGLEN: self.FLAGLEN + self.XORYVALUELEN]
-            pub_key_y = encoded_data[self.FLAGLEN + self.XORYVALUELEN: self.NOCOMPRESSEDLEN]
+            pub_key_x = encoded_data[FLAGLEN: FLAGLEN + XORYVALUELEN]
+            pub_key_y = encoded_data[FLAGLEN + XORYVALUELEN: NOCOMPRESSEDLEN]
             return {"X": pub_key_x, "Y": pub_key_y}
         else:
             print("invalid encode data format")
@@ -280,7 +284,7 @@ class Account(object):
         self.public_key = self.get_hex_public_key(public_key_ECC)
         self.sign_script = binascii.hexlify(signature_redeem_script_bytes)
         self.program_hash = binascii.hexlify(reversed_program_hash)
-        self.address = utility.program_hash_to_address(program_hash).encode()
+        self.address = utility.bytes_to_hex_string(utility.program_hash_to_address(program_hash).encode())
 
         # print("public_key: " + self.public_key.decode("utf-8"))
         # print("sign_script: " + self.sign_script.decode("utf-8"))
@@ -308,25 +312,16 @@ class Account(object):
         n = len(eccs)
         op_code = bytes([utility.PUSH1 + n - 1])
         buf.append(op_code)
-        buf.append(bytes([self.MULTISIG]))
+        buf.append(bytes([MULTISIG]))
         return buf
 
     def show_info(self):
-        '''
-        print("private_key: " + binascii.b2a_hex(self.private_key).decode("utf-8"))
-        print("public_key: " + self.public_key.decode("utf-8")) 
-        print("sign_script: " + self.sign_script.decode("utf-8"))
-        print("program_hash: " + self.program_hash.decode("utf-8"))
-        print("address: " + self.address.decode("utf-8"))
-        print("iv: " + binascii.b2a_hex(self.iv).decode("utf-8"))
-        print("master_key: " + binascii.b2a_hex(self.master_key).decode("utf-8"))        
-        '''
 
         print("private_key: " + utility.bytes_to_hex_string(self.private_key))
         print("public_key: " + utility.bytes_to_hex_string(self.public_key))
         print("sign_script: " + utility.bytes_to_hex_string(self.sign_script))
         print("program_hash: " + utility.bytes_to_hex_string(self.program_hash))
-        print("address: " + utility.bytes_to_hex_string(self.address))
+        print("address: " + self.address)
         print("iv: " + utility.bytes_to_hex_string(self.iv))
         print("master_key: " + utility.bytes_to_hex_string(self.master_key))
 
@@ -366,7 +361,7 @@ class Account(object):
 
     def decompress(self, yTilde, xValue, curve):
         x_coord = xValue
-        param_a = self.P256PARAMA
+        param_a = P256PARAMA
         y_square = x_coord ** 2 % abs(curve.p)
         y_square += param_a
         y_square = y_square % curve.p

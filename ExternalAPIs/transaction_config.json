@@ -1,0 +1,13 @@
+{
+	"multi_owner" : "True",
+	"multi_target": "True",
+	"multi_target_path": "/home/bopeng/dev/src/ELAClient/addresses.csv",
+	"clients_to_sign" :"/home/bopeng/dev/src/ELAClient3,/home/bopeng/dev/src/ELAClient4",
+	"passwords_of_clients": ",",
+	"from_address": "EPX2prPgCC6rKEJQMTJ97WQH5ErWj99JLz",
+	"to_address":"",
+	"amount" : "",
+	"fee" : "0.005",
+	"to_be_signed" : "to_be_signed.txn",
+	"ready_to_send" : "ready_to_send.txn"
+}

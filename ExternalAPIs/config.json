@@ -1,0 +1,14 @@
+{
+	"target_url" : "http://127.0.0.1",
+	"target_port": "10334",
+	"headers" : 
+	{
+		"content-type": "application/json"
+	},
+	"method":"getcurrentheight",
+	"params":
+	{
+		"height":"1000"
+	},
+	"api_path" : "/api/v1/block/details/height/" 
+}

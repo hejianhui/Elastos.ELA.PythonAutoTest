@@ -1,0 +1,17 @@
+{
+	"client_path":"/home/bopeng/dev/src/ELAClient",
+	"password" : "12345679",
+	"wallet_name": "wallet0000.dat",
+	"change_password":"12345670",
+	"transaction" : 	
+	{
+		"from":"EPX2prPgCC6rKEJQMTJ97WQH5ErWj99JLz",
+		"to":"EXfR7wiuC6f9K3tcmi9tnFzsETzdFEZ7Lk",
+		"amount":"4",
+		"fee":"0.005",
+		"hex_string":"",
+		"transaction_file_path":""
+	},
+	"adding_accounts": "027d833dc98211b76b1c09342793eae8459f6f1e5bdd4b2c7d3f86bd79fd034906 0215b20a20b1ad14f2179086cfdaa2a030f8ae4a6a7c7efe11f6cef440c15b010c",
+	"deleted_account":"ESrpbUQuoPZSW8qcWzeqfUKwCxNAHehFgr"	
+}
