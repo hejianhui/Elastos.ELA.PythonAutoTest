@@ -147,7 +147,7 @@ class Account(object):
     def create_public_key_with_private(self, private_key_int):
         ECCkey = ECC.construct(curve='P-256', d=private_key_int)
         self.private_key = ECCkey.d.to_bytes()
-        print(ECCkey)
+        #print(ECCkey)
         self.ECCkey = ECCkey
         return ECCkey
 
@@ -199,9 +199,9 @@ class Account(object):
                                                                public_key_ECC, iv_bytes)
         self.private_key_encrypted_bytes = private_key_encrypted_bytes
         self.private_key = private_key_bytes
-        '''
-        print("private_key: " + binascii.b2a_hex(self.private_key).decode())
-        '''
+
+        # print("private_key: " + binascii.b2a_hex(self.private_key).decode())
+
         self.init_standard(public_key_ECC)
 
         self.store_wallet_data()

@@ -37,7 +37,7 @@ class Transaction(object):
         buf_bytes = b''
         if self.hash is None:
             buf_bytes += self.serialize_unsigned()
-            print("buf_bytes" + utility.bytes_to_hex_string(buf_bytes))
+            # print("buf_bytes" + utility.bytes_to_hex_string(buf_bytes))
 
             f = utility.to_aes_key(buf_bytes)
             self.hash = f
@@ -52,7 +52,7 @@ class Transaction(object):
 
         buf_bytes += self.payload.serialize()
 
-        print("payload:" + utility.bytes_to_hex_string(buf_bytes))
+        #print("payload:" + utility.bytes_to_hex_string(buf_bytes))
 
         buf_bytes += bytes([len(self.attributes)])
         if len(self.attributes) > 0:
@@ -63,16 +63,20 @@ class Transaction(object):
         if len(self.utxo_inputs) > 0:
             for utxo_input in self.utxo_inputs:
                 buf_bytes += utxo_input.serialize()
-
-        buf_bytes += bytes([len(self.outputs)])
+        length = len(self.outputs)
+        if length < 255:  # one byte, 8 bits, 1111 1111
+            buf_bytes += length.to_bytes(1, byteorder='little')
+        else:  # two byte, 16 bits, 1111 1111 1111 1111
+            buf_bytes += b'\xfd'
+            buf_bytes += length.to_bytes(2, byteorder='little')
         if len(self.outputs) > 0:
             for output in self.outputs:
                 buf_bytes += output.serialize()
-        print("lock time: ",self.locktime)
+        #print("lock time: ", self.locktime)
         locktime = struct.pack(">I", self.locktime)
         locktime = utility.add_zero(locktime, 4)
         buf_bytes += utility.reverse_values_bitwise(locktime)
-        print("locktime:" + str(self.locktime))
+        #print("locktime:" + str(self.locktime))
         return buf_bytes
 
     def get_transaction_type(self):
@@ -117,7 +121,7 @@ class Transaction(object):
     def serialize(self):
         buf = self.serialize_unsigned()
         lens = len(self.programs)
-        print("program length:" + str(lens))
+        # print("program length:" + str(lens))
         # extended = struct.pack("<Q", lens)
         extended = bytes([lens])
         buf = utility.write_var_unit(buf, extended)

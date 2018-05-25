@@ -44,8 +44,8 @@ class TransactionOutput(object):
         serialized += utility.reverse_values_bitwise(struct.pack("I", self.output_lock))
         serialized += utility.add_zero(self.program_hash, 21)
 
-        print("asset_ID: " + utility.bytes_to_hex_string(self.asset_id) + "\n")
-        print("value: " + str(self.value) + "\n")
-        print("lock: " + str(self.output_lock) + "\n")
-        print("program_hash: " + utility.bytes_to_hex_string(self.program_hash) + "\n")
+        # print("asset_ID: " + utility.bytes_to_hex_string(self.asset_id) + "\n")
+        # print("value: " + str(self.value) + "\n")
+        # print("lock: " + str(self.output_lock) + "\n")
+        # print("program_hash: " + utility.bytes_to_hex_string(self.program_hash) + "\n")
         return serialized

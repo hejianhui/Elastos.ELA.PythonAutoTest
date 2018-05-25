@@ -42,7 +42,7 @@ class TransactionAttribute(object):
         serialized += self.data
 
         # print("data:" + Utility.bytes_to_hex_string(self.data))
-        print("attribute::" + utility.bytes_to_hex_string(serialized))
+        # print("attribute::" + utility.bytes_to_hex_string(serialized))
         return serialized
 
     def new_tx_nonce_attribute(self):

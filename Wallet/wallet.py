@@ -92,7 +92,7 @@ class Wallet(object):
             print("[Wallet], Invalid transaction target")
 
         # NEED TO SYNC HERE, IGNORED FOR FUTURE IMPLEMENTATION
-
+        #print('from address:', from_address)
         spender = utility.address_to_programhash(from_address)
         total_output_amount = 0
         tx_outputs = []
@@ -104,7 +104,7 @@ class Wallet(object):
             total_output_amount += value
             tx_outputs.append(tx_output)
 
-        self.utxos = self.get_utxo_by_address("localhost", "10334", from_address)[0]
+        self.utxos = self.get_utxo_by_address("localhost", "20334", from_address)[0]
         available_utxos = self.remove_locked_utxos(self.utxos)
         available_utxos = self.sort_utxos_asc(available_utxos)
         tx_inputs = []
@@ -228,7 +228,6 @@ class Wallet(object):
             target_node_ip = "127.0.0.1"
         self.os_node_api.set_address(target_node_ip, target_node_port)
         utxos = self.os_node_api.get_utxo_by_addr(spender_address)
-        print("all the utxos:", utxos)
         if utxos['Desc'] == 'SUCCESS' or utxos['Desc'] == 'Success':
             return utxos['Result']
         return None
@@ -277,9 +276,7 @@ class Wallet(object):
             "method": method,
             "params": params
         }
-        print(data)
-        return
-        resp = requests.post("http://127.0.0.1:10336", json=data)
+        resp = requests.post("http://127.0.0.1:20336", json=data)
         return resp.json()
 
     # Quick Sort, need to fix stack overflow bug

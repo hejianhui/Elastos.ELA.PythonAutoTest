@@ -31,15 +31,14 @@ class UTXOTxInput(object):
         refer_tx_id_bytes = utility.add_zero(utility.valuebytes_to_utfbytes(self.refer_tx_id.encode()), 32)
         serialized += refer_tx_id_bytes
 
-        refer_tx_output_index_bytes = utility.reverse_values_bitwise(
-            utility.add_zero(bytes([self.refer_tx_output_index]), 2))
+        refer_tx_output_index_bytes = self.refer_tx_output_index.to_bytes(2, "little") #convert to uint16
         # refer_tx_output_index_bytes = Utility.add_zero(bytes([self.refer_tx_output_index]), 4)
         serialized += refer_tx_output_index_bytes
 
         sequence_bytes = utility.reverse_values_bitwise(utility.add_zero(bytes([self.sequence]), 4))
         serialized += sequence_bytes
 
-        print("refer_tx_id: " + str(self.refer_tx_id) + "\n")
-        print("refer_tx_output_index: " + str(self.refer_tx_output_index) + "\n")
-        print("sequence: " + str(self.sequence) + "\n")
+        # print("refer_tx_id: " + str(self.refer_tx_id) + "\n")
+        # print("refer_tx_output_index: " + str(self.refer_tx_output_index) + "\n")
+        # print("sequence: " + str(self.sequence) + "\n")
         return serialized

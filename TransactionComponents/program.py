@@ -29,6 +29,6 @@ class Program(object):
         buf = utility.write_var_unit(buf, extended_code_len)
         buf += utf_code
 
-        print("code:" + utility.bytes_to_hex_string(self.code))
-        print("parameter:" + utility.bytes_to_hex_string(self.parameter))
+        # print("code:" + utility.bytes_to_hex_string(self.code))
+        # print("parameter:" + utility.bytes_to_hex_string(self.parameter))
         return buf
