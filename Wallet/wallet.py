@@ -47,23 +47,6 @@ class Wallet(object):
 
         self.os_node_api = elastos_restful_api.RestfulAPI()
 
-        # def import_account(self):
-        #     self.asset_id = self.get_system_asset_id()
-        #     gen = account.Account()
-        #     gen.import_key_info()
-        #     self.account = gen
-        #
-        # def create_standard_account(self, wallet_name, wallet_password):
-        #     self.asset_id = self.get_system_asset_id()
-        #     gen = account.Account()
-        #     gen.create_standard_key_store(wallet_name, wallet_password)
-        #     self.account = gen
-        #
-        # def create_multisign_account(self, m=0, n=0, wallet_name="", wallet_password=""):
-        #     self.asset_id = self.get_system_asset_id()
-        #     gen = account.Account()
-        #     gen.create_multi_key_store(m, n, wallet_name, wallet_password)
-        #     self.account = gen
         '''
         create_standard_keystore data store in original Go version code, SQLite database should be created 
         temporarily keep data store locally in code

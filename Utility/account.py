@@ -37,7 +37,7 @@ class Account(object):
     classdocs
     """
 
-    def __init__(self, name="name", password="password", type=STANDARD, m=0, n=0):
+    def __init__(self, name="name", password="password", private_key=None, sign_type=STANDARD, m=0, n=0):
 
         """
         Constructor
@@ -50,9 +50,9 @@ class Account(object):
         self.iv = os.urandom(16)
         self.master_key = os.urandom(32)
         self.name = name
-        if type is STANDARD:
-            self.create_standard_key_store(name, password)
-        elif type is MULTISIG:
+        if sign_type is STANDARD:
+            self.create_standard_key_store(name, password, private_key)
+        elif sign_type is MULTISIG:
             self.create_multi_key_store(m, n, name, password)
         else:
             raise Exception('invalid transaction type!')
@@ -147,7 +147,7 @@ class Account(object):
     def create_public_key_with_private(self, private_key_int):
         ECCkey = ECC.construct(curve='P-256', d=private_key_int)
         self.private_key = ECCkey.d.to_bytes()
-        #print(ECCkey)
+        # print(ECCkey)
         self.ECCkey = ECCkey
         return ECCkey
 
@@ -169,7 +169,7 @@ class Account(object):
             public_key_eccs.append(self.ECCkey)
         self.init_multi(public_key_eccs, m)
 
-    def create_standard_key_store(self, name, password):
+    def create_standard_key_store(self, name, password, private_key=None):
         if not str(name).endswith(".json"):
             name = name + ".json"
 
@@ -187,7 +187,10 @@ class Account(object):
 
         master_key_encrypted_bytes = self.encrypt_master_key(iv_bytes, password_key_bytes, master_key_bytes)
         self.master_key_encrypted_bytes = master_key_encrypted_bytes
-        key_pair = self.create_key_pair()
+        if private_key is None:
+            key_pair = self.create_key_pair()
+        else:
+            key_pair = ECC.construct(curve='P-256', d=int(private_key, 16))
 
         private_key_int = key_pair._d
         private_key_bytes = private_key_int.to_bytes()

@@ -61,7 +61,7 @@ for i in range(ACCOUNT_COUNT):
     account_list.append(account.Account("account" + str(i), "elatest"))
     print(account_list[i].address)
 
-current_block_height = get_block_height()
+current_block_height = node.jsonrpc.getblockcount()
 print("current block height is:", get_block_height())
 # generate one block, send ela to account0's address
 while True:
