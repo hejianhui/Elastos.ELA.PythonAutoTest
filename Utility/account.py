@@ -137,7 +137,6 @@ class Account(object):
 
     def create_key_pair(self):
         ECCkey = ECC.generate(curve='P-256')
-        self.ECCkey = ECCkey
         return ECCkey
 
     '''
@@ -191,6 +190,8 @@ class Account(object):
             key_pair = self.create_key_pair()
         else:
             key_pair = ECC.construct(curve='P-256', d=int(private_key, 16))
+
+        self.ECCkey = key_pair
 
         private_key_int = key_pair._d
         private_key_bytes = private_key_int.to_bytes()

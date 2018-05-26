@@ -1,14 +1,9 @@
+#  a stress test script used in test net.
+
 from Utility import account
 from Utility import utility
 from Wallet import wallet
 import time
-import requests
-
-
-def get_block_height():
-    resp = requests.get("http://127.0.0.1:20334/api/v1/block/height")
-    return resp.json()['Result']
-
 
 ACCOUNT_COUNT = 1000
 
@@ -62,14 +57,14 @@ for i in range(ACCOUNT_COUNT):
     print(account_list[i].address)
 
 current_block_height = node.jsonrpc.getblockcount()
-print("current block height is:", get_block_height())
+print("current block count is:", node.jsonrpc.getblockcount())
 # generate one block, send ela to account0's address
 while True:
     time.sleep(1)
-    new_block_height = get_block_height()
+    new_block_height = node.jsonrpc.getblockcount()
     if new_block_height > current_block_height:
         current_block_height = new_block_height
-        print("new height is:", new_block_height, "increase by 1")
+        print("new count is:", new_block_height)
         balance = wallet0.get_utxo_by_address("http://127.0.0.1", 20334, account0.address)
         break
 
@@ -83,13 +78,13 @@ tx = wallet0.create_transaction(
 signed_tx = wallet0.sign_standard_transaction("any", tx)
 print(wallet0.send_transaction(signed_tx))
 print("multi-output transaction is sent.")
-print("current height is:", get_block_height())
+print("current block count is:", node.jsonrpc.getblockcount())
 
 while True:
     time.sleep(1)
-    new_block_height = get_block_height()
+    new_block_height = node.jsonrpc.getblockcount()
 
-    print("current height is:", new_block_height)
+    print("current block count is:", new_block_height)
     if new_block_height > current_block_height + 10:
         break
 
@@ -119,8 +114,8 @@ while True:
     print("time span:", time_after - time_before)
     while True:
         time.sleep(1)
-        new_block_height = get_block_height()
+        new_block_height = node.jsonrpc.getblockcount()
         if new_block_height > current_block_height:
             current_block_height = new_block_height
-            print("current height is:", new_block_height)
+            print("current block count is:", new_block_height)
             break
