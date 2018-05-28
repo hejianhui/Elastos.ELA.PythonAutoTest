@@ -2,7 +2,7 @@
 .idea/
 nodes/
 *.pem
-Log
+Logs
 test*
 Utility/__*
 __*
