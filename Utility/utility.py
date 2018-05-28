@@ -18,7 +18,7 @@ from . import account
 from Crypto.Hash import SHA256
 from Crypto.Hash import RIPEMD160
 import binascii
-from Utility import base58
+import base58
 from Utility import node
 from Crypto.Signature import DSS
 
