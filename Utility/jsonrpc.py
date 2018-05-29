@@ -145,6 +145,5 @@ class JSONRPC(object):
             log.debug("<-- " + responsedata)
         return response
 
-
-#rpc_connection = JSONRPC("http://127.0.0.1:20336")
-#print(rpc_connection.getinfo("a"))
+# rpc_connection = JSONRPC("http://127.0.0.1:20336")
+# print(rpc_connection.getinfo("a"))

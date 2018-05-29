@@ -3,7 +3,6 @@ Created on Mar 30, 2018
 
 @author: bopeng
 """
-from Crypto.Util import number as nb
 from Crypto.PublicKey import ECC
 from Crypto.Hash import SHA256
 from Crypto.Cipher import AES
@@ -11,7 +10,6 @@ import array
 import binascii
 import os
 import json
-from Crypto.Util.number import long_to_bytes
 
 from Utility import utility
 
@@ -50,12 +48,6 @@ class Account(object):
         self.iv = os.urandom(16)
         self.master_key = os.urandom(32)
         self.name = name
-        if sign_type is STANDARD:
-            self.create_standard_key_store(name, password, private_key)
-        elif sign_type is MULTISIG:
-            self.create_multi_key_store(m, n, name, password)
-        else:
-            raise Exception('invalid transaction type!')
 
     '''
     def decode_point(self, encoded_data):
@@ -81,6 +73,7 @@ class Account(object):
         return None
     '''
 
+    '''
     def decode_point(self, encoded_data):
         if encoded_data[0] == 0x00:
             return {"X": None, "Y": None}
@@ -97,6 +90,7 @@ class Account(object):
         else:
             print("invalid encode data format")
             return None
+    '''
 
     '''
     return a ECC type keypair
@@ -234,7 +228,6 @@ class Account(object):
         return buf
 
     def show_info(self):
-
         print("private_key: " + utility.bytes_to_hex_string(self.private_key))
         print("public_key: " + utility.bytes_to_hex_string(self.public_key))
         print("sign_script: " + utility.bytes_to_hex_string(self.sign_script))
@@ -243,186 +236,152 @@ class Account(object):
         print("iv: " + utility.bytes_to_hex_string(self.iv))
         print("master_key: " + utility.bytes_to_hex_string(self.master_key))
 
-    def export_key_info(self, key_path="", ECC_path="./ECC.pem"):
-        if key_path == "":
-            key_path = self.name
-        else:
-            self.name = key_path
+    # def decompress(self, yTilde, xValue, curve):
+    #     x_coord = xValue
+    #     param_a = P256PARAMA
+    #     y_square = x_coord ** 2 % abs(curve.p)
+    #     y_square += param_a
+    #     y_square = y_square % curve.p
+    #     y_square *= x_coord
+    #     y_square = y_square % curve.p
+    #     y_square += y_square % curve.b
+    #     y_square = y_square % curve.p
+    #
+    #     y_value = self.curve_sqrt(y_square, curve)
+    #     y_coord = 0
+    #     if (y_value % 2 == 0 and yTilde != 0) or (y_value % 2 == 1 and yTilde != 1):
+    #         y_coord = curve.p - y_value
+    #     else:
+    #         y_coord = y_value
+    #     return {"X": x_coord, "Y": y_coord}
 
-        if utility.is_file_exist(key_path):
-            os.remove(key_path)
-        mode = 'w'
-        with open(key_path, mode) as f:
-            json.dump(self.to_json(), f)
+    # def curve_sqrt(self, y_square, curve):
+    #     p = long_to_bytes(curve._p)
+    #     if (p[1] == 1):
+    #         tmp1 = curve._p << 2
+    #         tmp1 = tmp1 + 1
+    #
+    #         tmp2 = (y_square ** tmp1) % curve._p
+    #         tmp3 = (tmp2 ** 2) % curve._p
+    #         if tmp3 == y_square:
+    #             return tmp2
+    #         return None
+    #     q_minus_one = curve._p - 1
+    #     legend_exp = q_minus_one >> 1
+    #     tmp4 = (y_square ** legend_exp) >> curve._p
+    #     if tmp4 == 1:
+    #         return None
+    #     k = q_minus_one >> 2 << 1
+    #     k = k + 1
+    #
+    #     lucas_param_q = y_square
+    #     four_q = lucas_param_q << 2
+    #     four_q = four_q % curve._p
+    #
+    #     while (True):
+    #         lucas_param_p = 0
+    #         while (True):
+    #             tmp5 = 0
+    #             lucas_param_p = nb.getPrime(p.bit_length(), randfunc=None)
+    #             if lucas_param_p < curve._p:
+    #                 tmp5 = lucas_param_p * lucas_param_q
+    #                 tmp5 = tmp5 - four_q
+    #                 tmp5 = (tmp5 ** legend_exp) % curve._p
+    #                 if tmp5 == q_minus_one:
+    #                     break
+    #         seq = self.fast_lucas_seq(curve._p, lucas_param_p, lucas_param_q, k)
+    #         seq_u = seq["uh"]
+    #         seq_v = seq["vl"]
+    #         tmp6 = seq_v * seq_v
+    #         tmp6 = tmp6 % curve._p
+    #         if tmp6 == four_q:
+    #             if seq_v[0] == 1:
+    #                 seq_v = seq_v + curve._p
+    #             seq_v >> 1
+    #             return seq_v
+    #         if seq_u == 1 or seq_u == q_minus_one:
+    #             break
+    #     return None
 
-        f = open(ECC_path, 'wt')
-        f.write(self.ECCkey.export_key(format='PEM'))
-        f.close
-
-    def import_key_info(self, key_path="", ECC_path="./Wallet/ECC.pem"):
-        if key_path == "":
-            key_path = self.name
-        else:
-            self.name = key_path
-        if utility.is_file_exist(key_path):
-            with open(key_path) as json_data:
-                data = json.load(json_data)
-                self.public_key = data['public_key'].encode("utf-8")
-                self.sign_script = data['sign_script'].encode("utf-8")
-                self.program_hash = data['program_hash'].encode("utf-8")
-                self.address = data['address'].encode("utf-8")
-                self.private_key = data['private_key'].encode("utf-8")
-                self.iv = data['iv'].encode("utf-8")
-                self.master_key = data['master_key'].encode("utf-8")
-        f = open(ECC_path, 'rt')
-        self.ECCkey = ECC.import_key(f.read())
-
-    def decompress(self, yTilde, xValue, curve):
-        x_coord = xValue
-        param_a = P256PARAMA
-        y_square = x_coord ** 2 % abs(curve.p)
-        y_square += param_a
-        y_square = y_square % curve.p
-        y_square *= x_coord
-        y_square = y_square % curve.p
-        y_square += y_square % curve.b
-        y_square = y_square % curve.p
-
-        y_value = self.curve_sqrt(y_square, curve)
-        y_coord = 0
-        if (y_value % 2 == 0 and yTilde != 0) or (y_value % 2 == 1 and yTilde != 1):
-            y_coord = curve.p - y_value
-        else:
-            y_coord = y_value
-        return {"X": x_coord, "Y": y_coord}
-
-    def curve_sqrt(self, y_square, curve):
-        p = long_to_bytes(curve._p)
-        if (p[1] == 1):
-            tmp1 = curve._p << 2
-            tmp1 = tmp1 + 1
-
-            tmp2 = (y_square ** tmp1) % curve._p
-            tmp3 = (tmp2 ** 2) % curve._p
-            if tmp3 == y_square:
-                return tmp2
-            return None
-        q_minus_one = curve._p - 1
-        legend_exp = q_minus_one >> 1
-        tmp4 = (y_square ** legend_exp) >> curve._p
-        if tmp4 == 1:
-            return None
-        k = q_minus_one >> 2 << 1
-        k = k + 1
-
-        lucas_param_q = y_square
-        four_q = lucas_param_q << 2
-        four_q = four_q % curve._p
-
-        while (True):
-            lucas_param_p = 0
-            while (True):
-                tmp5 = 0
-                lucas_param_p = nb.getPrime(p.bit_length(), randfunc=None)
-                if lucas_param_p < curve._p:
-                    tmp5 = lucas_param_p * lucas_param_q
-                    tmp5 = tmp5 - four_q
-                    tmp5 = (tmp5 ** legend_exp) % curve._p
-                    if tmp5 == q_minus_one:
-                        break
-            seq = self.fast_lucas_seq(curve._p, lucas_param_p, lucas_param_q, k)
-            seq_u = seq["uh"]
-            seq_v = seq["vl"]
-            tmp6 = seq_v * seq_v
-            tmp6 = tmp6 % curve._p
-            if tmp6 == four_q:
-                if seq_v[0] == 1:
-                    seq_v = seq_v + curve._p
-                seq_v >> 1
-                return seq_v
-            if seq_u == 1 or seq_u == q_minus_one:
-                break
-        return None
-
-    def fast_lucas_seq(self, curve_p, lucas_param_p, lucas_param_q, k):
-        n = k.bit_length()
-        s = self.get_lowest_set_bit(k)
-        uh = 1
-        vl = 2
-        ql = 1
-        qh = 1
-        vh = lucas_param_p
-        tmp = 0
-
-        j = n - 1
-        while (j >= s + 1):
-            if k[j] == 1:
-                ql = ql * qh
-                ql = ql % curve_p
-
-                uh = uh * vh
-                uh = uh % curve_p
-
-                vl = vh * vl
-                tmp = lucas_param_p * ql
-                vl = vl - tmp
-                vl = vl % curve_p
-
-                vh = vh * vh
-                tmp = qh << 1
-                vh = vh - tmp
-                vh = vh % curve_p
-            else:
-                qh = ql
-                uh = uh * ql
-                uh = uh - ql
-                uh = uh % curve_p
-
-                vh = vh * vl
-                tmp = lucas_param_p * ql
-                vh = vh - tmp
-                vh = vh % curve_p
-
-                vl = vl * vl
-                tmp = ql << 1
-                vl = vl - tmp
-                vl = vl % curve_p
-        j = j - 1
-        ql = ql * qh
-        ql = ql % curve_p
-        qh = ql * lucas_param_q
-        qh = qh % curve_p
-
-        uh = uh * vl
-        uh = uh - ql
-        uh = uh % curve_p
-
-        vl = vh * vl
-        tmp = lucas_param_p * ql
-        vl = vl - tmp
-        vl = vl % curve_p
-
-        ql = ql * qh
-        ql = ql % curve_p
-
-        for j in range(1, s + 1):
-            uh = uh * vl
-            uh = uh * curve_p
-
-            vl = vl * vl
-            tmp = ql << 1
-            vl = vl - tmp
-            vl = vl % curve_p
-
-            ql = ql * ql
-            ql = ql % curve_p
-        return {"uh": uh, "vl": vl}
-
-    def get_lowest_set_bit(self, k):
-        i = 0
-        while (k[i] != 1):
-            i = i + 1
-        return i
+    # def fast_lucas_seq(self, curve_p, lucas_param_p, lucas_param_q, k):
+    #     n = k.bit_length()
+    #     s = self.get_lowest_set_bit(k)
+    #     uh = 1
+    #     vl = 2
+    #     ql = 1
+    #     qh = 1
+    #     vh = lucas_param_p
+    #     tmp = 0
+    #
+    #     j = n - 1
+    #     while (j >= s + 1):
+    #         if k[j] == 1:
+    #             ql = ql * qh
+    #             ql = ql % curve_p
+    #
+    #             uh = uh * vh
+    #             uh = uh % curve_p
+    #
+    #             vl = vh * vl
+    #             tmp = lucas_param_p * ql
+    #             vl = vl - tmp
+    #             vl = vl % curve_p
+    #
+    #             vh = vh * vh
+    #             tmp = qh << 1
+    #             vh = vh - tmp
+    #             vh = vh % curve_p
+    #         else:
+    #             qh = ql
+    #             uh = uh * ql
+    #             uh = uh - ql
+    #             uh = uh % curve_p
+    #
+    #             vh = vh * vl
+    #             tmp = lucas_param_p * ql
+    #             vh = vh - tmp
+    #             vh = vh % curve_p
+    #
+    #             vl = vl * vl
+    #             tmp = ql << 1
+    #             vl = vl - tmp
+    #             vl = vl % curve_p
+    #     j = j - 1
+    #     ql = ql * qh
+    #     ql = ql % curve_p
+    #     qh = ql * lucas_param_q
+    #     qh = qh % curve_p
+    #
+    #     uh = uh * vl
+    #     uh = uh - ql
+    #     uh = uh % curve_p
+    #
+    #     vl = vh * vl
+    #     tmp = lucas_param_p * ql
+    #     vl = vl - tmp
+    #     vl = vl % curve_p
+    #
+    #     ql = ql * qh
+    #     ql = ql % curve_p
+    #
+    #     for j in range(1, s + 1):
+    #         uh = uh * vl
+    #         uh = uh * curve_p
+    #
+    #         vl = vl * vl
+    #         tmp = ql << 1
+    #         vl = vl - tmp
+    #         vl = vl % curve_p
+    #
+    #         ql = ql * ql
+    #         ql = ql % curve_p
+    #     return {"uh": uh, "vl": vl}
+    #
+    # def get_lowest_set_bit(self, k):
+    #     i = 0
+    #     while (k[i] != 1):
+    #         i = i + 1
+    #     return i
 
     """
     def add_account(self):
@@ -472,13 +431,13 @@ class MultiSignAccount(object):
         return buf
 
 
-def get_hex_public_key(self, ECCkey):
+def get_hex_public_key(ECCkey):
     encoded = encode_point(is_compressed=True, public_key_ECC=ECCkey)
     hex_value = binascii.hexlify(bytearray(encoded))
     return hex_value
 
 
-def encode_point(self, is_compressed, public_key_ECC):
+def encode_point(is_compressed, public_key_ECC):
     public_key_x = public_key_ECC._point._x
     public_key_y = public_key_ECC._point._y
 

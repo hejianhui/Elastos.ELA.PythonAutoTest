@@ -11,7 +11,6 @@
 
 import logging
 import os
-import requests
 import subprocess
 
 import config
@@ -38,7 +37,7 @@ class Node(object):
     will be dispatched to the RPC and Restful connections.
     """
 
-    def __init__(self, i, dirname, configuration={}):
+    def __init__(self, i, dirname, configuration=list()):
         self.index = i
         self.datadir = os.path.join(dirname, "ela" + str(i))
 
@@ -54,14 +53,6 @@ class Node(object):
 
     def is_running(self):
         return self._running
-
-    def is_rpc_start(self):
-        response = requests.post('http://127.0.0.1:10336', json={'method': 'getnodestate'},
-                                 headers={"content-type": "application/json"})
-        if response.status_code is 200:
-            return True
-        else:
-            return False
 
     def start(self):
         """Start the node"""

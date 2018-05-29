@@ -60,11 +60,6 @@ PORT_MINING = 339
 PORT_INTERVAL = 1000
 SPV_INTERVAL = 10000
 
-
-def is_file_exist(file_path):
-    return os.path.exists(file_path)
-
-
 def script_to_program_hash(signature_redeem_script_byte_list):
     signature_redeem_script_bytes = b''
     if "\\" in str(signature_redeem_script_byte_list):
