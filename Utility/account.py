@@ -35,12 +35,15 @@ class Account(object):
     classdocs
     """
 
-    def __init__(self, name="name", password="password", private_key=None, sign_type=STANDARD, m=0, n=0):
+    def __init__(self, name="name", password="password", private_key=None):
 
         """
         Constructor
         """
         self.public_key = None
+        self.name = name
+        self.password = password
+        self.private_key = private_key
         self.sign_script = None
         self.program_hash = None
         self.address = None
@@ -48,6 +51,8 @@ class Account(object):
         self.iv = os.urandom(16)
         self.master_key = os.urandom(32)
         self.name = name
+
+        self.create_standard_key_store(password, private_key)
 
     '''
     def decode_point(self, encoded_data):
@@ -104,22 +109,7 @@ class Account(object):
     return a ECC type keypair with the private key given as hex value
     '''
 
-    def create_public_key_with_private(self, private_key_int):
-        ECCkey = ECC.construct(curve='P-256', d=private_key_int)
-        self.private_key = ECCkey.d.to_bytes()
-        # print(ECCkey)
-        self.ECCkey = ECCkey
-        return ECCkey
-
-    def create_standard_key_store(self, name, password, private_key=None):
-        if not str(name).endswith(".json"):
-            name = name + ".json"
-
-        if os.path.isfile(name):
-            print("key store file already exist")
-            self.import_key_info(key_path=name)
-            return
-
+    def create_standard_key_store(self, password, private_key=None):
         iv_bytes = self.iv
         master_key_bytes = self.master_key
         password_key_bytes = utility.to_aes_key(str.encode(password))
@@ -147,7 +137,7 @@ class Account(object):
         self.private_key_encrypted_bytes = private_key_encrypted_bytes
         self.private_key = private_key_bytes
 
-        # print("private_key: " + binascii.b2a_hex(self.private_key).decode())
+        #print("private_key: " + binascii.b2a_hex(self.private_key).decode())
 
         self.init_standard(public_key_ECC)
 
@@ -211,6 +201,7 @@ class Account(object):
         self.public_key = get_hex_public_key(public_key_ECC)
         self.sign_script = binascii.hexlify(signature_redeem_script_bytes)
         self.program_hash = binascii.hexlify(reversed_program_hash)
+        print("program hash:", self.program_hash)
         self.address = utility.bytes_to_hex_string(utility.program_hash_to_address(program_hash).encode())
 
         # print("public_key: " + self.public_key.decode("utf-8"))
