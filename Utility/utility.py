@@ -106,7 +106,7 @@ def program_hash_to_address(program_hash_bytes):
 def address_to_programhash(address):
     decoded = base58.b58decode_check(address)
     ph = decoded[0:21]
-    addr = program_hash_to_address(ph)
+    addr = program_hash_to_address(ph).decode()
     if addr != address:
         print("[AddressToProgramHash]: decode address verify failed.")
         return

@@ -3,14 +3,21 @@ from Utility import utility
 from Wallet import wallet
 import time
 
-account1 = account.Account("account1", "elastos")
+account1 = account.Account("foundationwallet1", "password",
+                           "eebfbd55819ea095107b776616669536d9f0bb6d3cd9b21665ea1fb02405cfed")
 account1.show_info()
-
-account2 = account.Account("account2", "elastos")
+account2 = account.Account("foundationwallet2", "password",
+                           "927f1ff719047e0243150447b9c009fc2f17d67fd413beb965b9a9449d42b9b1")
 account2.show_info()
-
-account3 = account.Account("account3", "elastos")
+account3 = account.Account("foundationwallet3", "password",
+                           "8d57d983f5960f6b3b2ed1d4f7350cfa7fb985580eaf4b9a2d8501384ce27369")
 account3.show_info()
+account4 = account.Account("foundationwallet4", "password",
+                            "22e388e026234863ba077fe18783bbf7935c49ed08898995e7f5f64db8d51cef")
+account4.show_info()
+foundation_account = account.MultiSignAccount(3, "name", "password",
+                                              [account2.ECCkey, account1.ECCkey, account4.ECCkey, account3.ECCkey])
+foundation_account.show_info()
 
 configuration_list = [
     {
@@ -31,6 +38,7 @@ configuration_list = [
                 'HttpJsonPort': 10336,
                 'NodePort': 10338,
                 'NodeOpenPort': 10866,
+                'FoundationAddress': '8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3',
                 'OpenService': False,
                 'PrintLevel': 0,
                 'IsTLS': False,
@@ -42,7 +50,7 @@ configuration_list = [
                     'AutoMining': False,
                     'MinerInfo': 'ELA',
                     'MinTxFee': 100,
-                    'ActiveNet': 'RegNet'
+                    'ActiveNet': 'MainNet'
                 }
             }
         }},
@@ -64,6 +72,7 @@ configuration_list = [
                 'HttpJsonPort': 20336,
                 'NodePort': 20338,
                 'NodeOpenPort': 20866,
+                'FoundationAddress': '8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3',
                 'OpenService': False,
                 'PrintLevel': 0,
                 'IsTLS': False,
@@ -75,7 +84,7 @@ configuration_list = [
                     'AutoMining': False,
                     'MinerInfo': 'ELA',
                     'MinTxFee': 100,
-                    'ActiveNet': 'RegNet'
+                    'ActiveNet': 'MainNet'
                 }
             }
         }
@@ -88,10 +97,21 @@ node1 = nodes[1]
 node0.start()
 node1.start()
 time.sleep(5)
-print(node0.jsonrpc.getinfo())
-print(node0.jsonrpc.discretemining(count=1001))
-print(node0.jsonrpc.getblockcount())
-wallet = wallet.Wallet(account1)
-tx = wallet.create_transaction(account1.address, [account2.address, account3.address], 0.0001, 0.00001)
-signed_tx = wallet.sign_standard_transaction("any", tx)
-print(wallet.send_transaction(signed_tx))
+print(node0.jsonrpc.discretemining(count=2))
+
+wallet1 = wallet.Wallet(account1)
+wallet2 = wallet.Wallet(account2)
+wallet3 = wallet.Wallet(account3)
+wallet4 = wallet.Wallet(account4)
+
+foundation_wallet = wallet.Wallet(foundation_account)
+
+tx = foundation_wallet.create_transaction(foundation_account.address, [account2.address, account3.address], 0.0001, 0.00001)
+tx = wallet1.sign_multi_transaction("any", tx)
+tx.programs[0].show_info()
+tx = wallet2.sign_multi_transaction("any", tx)
+tx.programs[0].show_info()
+tx = wallet3.sign_multi_transaction("any", tx)
+tx.programs[0].show_info()
+
+print(wallet1.send_transaction(tx))

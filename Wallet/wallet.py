@@ -65,7 +65,7 @@ class Wallet(object):
         return
     '''
 
-    def create_transaction(self, from_address=None, to_addresses=None, amount=0, fee=0, locked_until=0, outputs=None):
+    def create_transaction(self, from_address=None, to_addresses=None, amount=0, fee=0, locked_until=0):
         outputs = dict()
         if to_addresses != None and amount != 0:
             for address in to_addresses:
@@ -75,8 +75,9 @@ class Wallet(object):
             print("[Wallet], Invalid transaction target")
 
         # NEED TO SYNC HERE, IGNORED FOR FUTURE IMPLEMENTATION
-        #print('from address:', from_address)
+        print('from address:', from_address)
         spender = utility.address_to_programhash(from_address)
+        print("spender:", spender)
         total_output_amount = 0
         tx_outputs = []
         total_output_amount += fee
@@ -87,7 +88,7 @@ class Wallet(object):
             total_output_amount += value
             tx_outputs.append(tx_output)
 
-        self.utxos = self.get_utxo_by_address("localhost", "20334", from_address)[0]
+        self.utxos = self.get_utxo_by_address("localhost", "10334", from_address)[0]
         available_utxos = self.remove_locked_utxos(self.utxos)
         available_utxos = self.sort_utxos_asc(available_utxos)
         tx_inputs = []
@@ -167,10 +168,12 @@ class Wallet(object):
 
     def sign_multi_transaction(self, password, transaction):
         program_hashes = transaction.get_multi_signer()
+        print("program_hashes:", program_hashes)
         pgh_b = utility.bytes_to_hex_string(self.account.program_hash)
         index = 0
         signer_index = -1
         for pgh_a in program_hashes:
+            pgh_a = pgh_a.decode('utf-8')
             if pgh_a == pgh_b:
                 signer_index = index
                 break
@@ -180,8 +183,8 @@ class Wallet(object):
             return
         # FIX ME: should validate password in Utility.do_sign
         signed_transaction = utility.do_sign(transaction, self.account.ECCkey)
-        transaction.append_signature(signer_index, signed_transaction)
-        return signed_transaction
+        transaction.append_signature(signed_transaction)
+        return transaction
 
     def get_system_asset_id(self):
         system_token = Tx.Transaction(
@@ -259,7 +262,7 @@ class Wallet(object):
             "method": method,
             "params": params
         }
-        resp = requests.post("http://127.0.0.1:20336", json=data)
+        resp = requests.post("http://127.0.0.1:10336", json=data)
         return resp.json()
 
     # Quick Sort, need to fix stack overflow bug

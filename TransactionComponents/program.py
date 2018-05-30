@@ -32,3 +32,7 @@ class Program(object):
         # print("code:" + utility.bytes_to_hex_string(self.code))
         # print("parameter:" + utility.bytes_to_hex_string(self.parameter))
         return buf
+
+    def show_info(self):
+        print("code:", self.code)
+        print('parameter:', self.parameter)

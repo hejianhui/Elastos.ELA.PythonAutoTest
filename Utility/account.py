@@ -51,6 +51,7 @@ class Account(object):
         self.iv = os.urandom(16)
         self.master_key = os.urandom(32)
         self.name = name
+        self.public_key_ecc = None
 
         self.create_standard_key_store(password, private_key)
 
@@ -137,7 +138,7 @@ class Account(object):
         self.private_key_encrypted_bytes = private_key_encrypted_bytes
         self.private_key = private_key_bytes
 
-        #print("private_key: " + binascii.b2a_hex(self.private_key).decode())
+        # print("private_key: " + binascii.b2a_hex(self.private_key).decode())
 
         self.init_standard(public_key_ECC)
 
@@ -188,21 +189,32 @@ class Account(object):
         #         print (cbc_buffer)
         return cbc_buffer
 
+    # def init_standard(self, public_key_ECC):
+    #     signature_redeem_script_byte_list = self.create_standard_redeem_script(public_key_ECC)
+    #     program_hash = utility.script_to_program_hash(signature_redeem_script_byte_list)
+    #     signature_redeem_script_bytes = b''
+    #     for b in signature_redeem_script_byte_list:
+    #         signature_redeem_script_bytes = signature_redeem_script_bytes + b
+    #     reversed_program_hash = b''
+    #     for b in bytearray(program_hash):
+    #         reversed_program_hash = bytes([b]) + reversed_program_hash
+    #
+    #     self.public_key = self.get_hex_public_key(public_key_ECC)
+    #     self.sign_script = binascii.hexlify(signature_redeem_script_bytes)
+    #     self.program_hash = binascii.hexlify(reversed_program_hash)
+    #     self.address = utility.bytes_to_hex_string(utility.program_hash_to_address(program_hash).encode())
+
     def init_standard(self, public_key_ECC):
         signature_redeem_script_byte_list = self.create_standard_redeem_script(public_key_ECC)
         program_hash = utility.script_to_program_hash(signature_redeem_script_byte_list)
         signature_redeem_script_bytes = b''
         for b in signature_redeem_script_byte_list:
             signature_redeem_script_bytes = signature_redeem_script_bytes + b
-        reversed_program_hash = b''
-        for b in bytearray(program_hash):
-            reversed_program_hash = bytes([b]) + reversed_program_hash
 
         self.public_key = get_hex_public_key(public_key_ECC)
         self.sign_script = binascii.hexlify(signature_redeem_script_bytes)
-        self.program_hash = binascii.hexlify(reversed_program_hash)
-        print("program hash:", self.program_hash)
-        self.address = utility.bytes_to_hex_string(utility.program_hash_to_address(program_hash).encode())
+        self.program_hash = binascii.hexlify(program_hash)
+        self.address = utility.bytes_to_hex_string(utility.program_hash_to_address(program_hash))
 
         # print("public_key: " + self.public_key.decode("utf-8"))
         # print("sign_script: " + self.sign_script.decode("utf-8"))
@@ -384,15 +396,19 @@ class Account(object):
 
 
 class MultiSignAccount(object):
-    def __init__(self, m, name, password, public_keys=list()):
-        self.public_keys = public_keys
+    def __init__(self, m, name, password, eccs=list()):
+        self.public_keys = eccs
         self.name = name
         self.password = password
-        self.n = len(public_keys)
-        self.init_multi(public_keys, m)
+        self.n = len(eccs)
+        self.address = None
+        self.program_hash = None
+        self.sign_script = None
+        self.init_multi(m, eccs)
 
-    def init_multi(self, public_key_eccs, m):
-        signature_redeem_script_byte_list = self.create_multi_redeem_script(m, public_key_eccs)
+
+    def init_multi(self, m, eccs):
+        signature_redeem_script_byte_list = self.create_multi_redeem_script(m, eccs)
         program_hash = utility.script_to_program_hash(signature_redeem_script_byte_list)
         signature_redeem_script_bytes = b''
         for b in signature_redeem_script_byte_list:
@@ -401,25 +417,30 @@ class MultiSignAccount(object):
         for b in bytearray(program_hash):
             reversed_program_hash = bytes([b]) + reversed_program_hash
 
-        self.public_key = get_hex_public_key(public_key_eccs[0].public_key())
         self.sign_script = binascii.hexlify(signature_redeem_script_bytes)
         self.program_hash = binascii.hexlify(reversed_program_hash)
-        self.address = utility.program_hash_to_address(program_hash).encode()
+        self.address = utility.program_hash_to_address(program_hash).decode()
 
+#  structure: (PUSH1 + m -1) | encode_point(public_key) ... | (PUSH1 + n -1) | MULTISIG
     def create_multi_redeem_script(self, m, eccs):
+        eccs.sort(key=lambda x: x.public_key().pointQ.x)
         op_code = bytes([utility.PUSH1 + m - 1])
         buf = list()
         buf.append(op_code)
         for ecc in eccs:
             content = encode_point(True, ecc.public_key())
             buf.append(bytes([len(content)]))
-        for i in range(len(content)):
-            buf.append(bytes([content[i]]))
+            for i in range(len(content)):
+                buf.append(bytes([content[i]]))
         n = len(eccs)
         op_code = bytes([utility.PUSH1 + n - 1])
         buf.append(op_code)
         buf.append(bytes([MULTISIG]))
         return buf
+
+    def show_info(self):
+        print("address:", self.address)
+        print("program hash:", self.program_hash)
 
 
 def get_hex_public_key(ECCkey):

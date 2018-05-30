@@ -5,6 +5,7 @@ Created on Apr 16, 2018
 """
 from Utility import utility
 import struct
+import binascii
 
 
 class Transaction(object):
@@ -107,10 +108,7 @@ class Transaction(object):
         script = code[:self.PublicKeyScriptLength * 2]
         script_list = utility.valuebytes_to_valuebytelist(script)
         signer = utility.script_to_program_hash(script_list)
-        reverse_signer = b''
-        for i in range(int(len(signer))):
-            reverse_signer += bytes([signer[len(signer) - i - 1]])
-        return reverse_signer
+        return signer
 
     def get_programs(self):
         return self.programs
@@ -134,41 +132,26 @@ class Transaction(object):
         scripts = self.get_multi_public_keys()
         signers = []
         for script in scripts:
-            script.append(self.STANDARD)
+            script.append(bytes([self.STANDARD]))
             hash_value = utility.script_to_program_hash(script)
-            signers.append(hash_value)
+            signers.append(binascii.hexlify(hash_value))
         return signers
 
-    def append_signature(self, signer_index, signed_transaction):
+    def append_signature(self, signed_transaction):
         if len(self.programs) <= 0:
             print("missing transaction program")
-        new_sign = []
-        new_sign.append(bytes([len(signed_transaction)]))
-        new_sign.append(signed_transaction)
-        param = self.programs[0].parameter
-        if param is None:
-            param = []
-        else:
-
-            buf = b''
-            buf += self.serialize_unsigned()
-            '''
-            should verify public key and signature here, ignored for now
-            i = 0
-            public_keys = self.get_multi_public_keys()
-            while(i < len(param)):
-                sign = param[i:i+self.SignatureScriptLength[1:]]
-                public_key = public_keys[signer_index][1:]
-                pub_key = decode_point(publicKey)
-                i += self.SignatureScriptLength  
-            '''
-        buf += param
-        buf += new_sign
-        self.programs[0].parameter = buf
+        new_sign = b''
+        new_sign += (bytes([len(signed_transaction)]))
+        new_sign += (signed_transaction)
+        if self.programs[0].parameter is None:
+            self.programs[0].parameter = b''
+        self.programs[0].parameter += new_sign
         return
 
     def get_multi_public_keys(self):
         code = self.get_transaction_code()
+        print(code)
+        code = bytearray.fromhex(code.decode('utf-8'))
         if len(code) < self.MinMultiSignCodeLength or code[len(code) - 1] != self.MULTISIG:
             print("not a valid multi sign transaction code, length not enough")
         code = code[:len(code) - 1]
@@ -181,5 +164,9 @@ class Transaction(object):
         while i < len(code):
             script = code[i:i + self.PublicKeyScriptLength - 1]
             i += self.PublicKeyScriptLength - 1
-            public_keys.append(script)
+            buf = []
+            for x in script:
+                buf.append(bytes([x]))
+            public_keys.append(buf)
+
         return public_keys
