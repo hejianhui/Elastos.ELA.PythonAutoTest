@@ -20,19 +20,16 @@ class Program(object):
         self.parameter = parameter
 
     def serialize(self, buf):
-        extended_para_len = utility.add_zero(bytes([len(self.parameter)]), 1)
+        extended_para_len = len(self.parameter)
         buf = utility.write_var_unit(buf, extended_para_len)
         buf += self.parameter
-        print("code2:", self.code)
-        code = self.code
-        extended_code_len = utility.add_zero(bytes([len(code)]), 1)
-        buf = utility.write_var_unit(buf, extended_code_len)
-        buf += code
 
-        # print("code:" + utility.bytes_to_hex_string(self.code))
-        # print("parameter:" + utility.bytes_to_hex_string(self.parameter))
+        extended_code_len = len(self.code)
+        buf = utility.write_var_unit(buf, extended_code_len)
+        buf += self.code
+
         return buf
 
     def show_info(self):
-        print("code:", self.code)
-        print('parameter:', self.parameter)
+        print("code:", self.code.hex())
+        print('parameter:', self.parameter.hex())

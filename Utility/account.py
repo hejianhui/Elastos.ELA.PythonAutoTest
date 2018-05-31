@@ -4,9 +4,6 @@ Created on Mar 30, 2018
 @author: bopeng
 """
 from Crypto.PublicKey import ECC
-from Crypto.Hash import SHA256
-from Crypto.Cipher import AES
-import array
 import binascii
 import os
 import json
@@ -26,9 +23,6 @@ EMPTYBYTE = 0x00
 
 STANDARD = 0xac
 MULTISIG = 0xae
-
-UINT168SIZE = 21
-
 
 class Account(object):
     """
@@ -121,8 +115,12 @@ class Account(object):
 
         self.private_key = private_key_bytes
 
-        self.init_standard(public_key_ECC)
-
+        signature_redeem_script_bytes = self.create_standard_redeem_script(public_key_ECC)
+        program_hash = utility.script_to_program_hash(signature_redeem_script_bytes)
+        self.public_key = encode_point(is_compressed=True, public_key_ECC=public_key_ECC)
+        self.sign_script = signature_redeem_script_bytes
+        self.program_hash = program_hash
+        self.address = utility.program_hash_to_address(program_hash).decode()
         self.store_wallet_data()
 
     def store_wallet_data(self):
@@ -140,43 +138,15 @@ class Account(object):
         with open('./wallets/' + self.name + ".json", 'w') as f:
             f.write(json.dumps(attributes))
 
-    # def init_standard(self, public_key_ECC):
-    #     signature_redeem_script_byte_list = self.create_standard_redeem_script(public_key_ECC)
-    #     program_hash = utility.script_to_program_hash(signature_redeem_script_byte_list)
-    #     signature_redeem_script_bytes = b''
-    #     for b in signature_redeem_script_byte_list:
-    #         signature_redeem_script_bytes = signature_redeem_script_bytes + b
-    #     reversed_program_hash = b''
-    #     for b in bytearray(program_hash):
-    #         reversed_program_hash = bytes([b]) + reversed_program_hash
-    #
-    #     self.public_key = self.get_hex_public_key(public_key_ECC)
-    #     self.sign_script = binascii.hexlify(signature_redeem_script_bytes)
-    #     self.program_hash = binascii.hexlify(reversed_program_hash)
-    #     self.address = utility.bytes_to_hex_string(utility.program_hash_to_address(program_hash).encode())
-
-    def init_standard(self, public_key_ECC):
-        signature_redeem_script_bytes = self.create_standard_redeem_script(public_key_ECC)
-        program_hash = utility.script_to_program_hash(signature_redeem_script_bytes)
-        self.public_key = get_hex_public_key(public_key_ECC)
-        self.sign_script = signature_redeem_script_bytes
-        self.program_hash = binascii.hexlify(program_hash)
-        self.address = utility.program_hash_to_address(program_hash).decode('utf-8')
-
-        # print("public_key: " + self.public_key.decode("utf-8"))
-        # print("sign_script: " + self.sign_script.decode("utf-8"))
-        # print("program_hash: " + self.program_hash.decode("utf-8"))
-        # print("address: " + self.address.decode())
-
     def create_standard_redeem_script(self, public_key_ECC):
         content = encode_point(True, public_key_ECC)
-        return bytes([len(content)] + content + [STANDARD])
+        return bytes([len(content)]) + content + bytes([STANDARD])
 
     def show_info(self):
-        print("private_key: " + utility.bytes_to_hex_string(self.private_key))
-        print("public_key: " + utility.bytes_to_hex_string(self.public_key))
-        print("sign_script: " + utility.bytes_to_hex_string(self.sign_script))
-        print("program_hash: " + utility.bytes_to_hex_string(self.program_hash))
+        print("private_key: " + self.private_key.hex())
+        print("public_key: " + self.public_key.hex())
+        print("sign_script: " + self.sign_script.hex())
+        print("program_hash: " + self.program_hash.hex())
         print("address: " + self.address)
 
     # def decompress(self, yTilde, xValue, curve):
@@ -357,16 +327,15 @@ class MultiSignAccount(object):
     def create_multi_redeem_script(self, m, eccs):
         eccs.sort(key=lambda x: x.public_key().pointQ.x)
         op_code = utility.PUSH1 + m - 1
-        buf = []
-        buf += [op_code]
+        buf = b''
+        buf += bytes([op_code])
         for ecc in eccs:
             content = encode_point(True, ecc.public_key())
-            buf = buf + [len(content)] + content
+            buf = buf + bytes([len(content)]) + content
         n = len(eccs)
         op_code = utility.PUSH1 + n - 1
-        buf += [op_code]
-        buf += [MULTISIG]
-        print("multi bytes buf:", buf)
+        buf += bytes([op_code])
+        buf += bytes([MULTISIG])
         return bytes(buf)
 
     def show_info(self):
@@ -376,8 +345,7 @@ class MultiSignAccount(object):
 
 def get_hex_public_key(ECCkey):
     encoded = encode_point(is_compressed=True, public_key_ECC=ECCkey)
-    hex_value = binascii.hexlify(bytearray(encoded))
-    return hex_value
+    return encoded.hex()
 
 
 def encode_point(is_compressed, public_key_ECC):
@@ -411,4 +379,4 @@ def encode_point(is_compressed, public_key_ECC):
             encodedData[0] = COMPODDFLAG
     else:
         encodedData[0] = NOCOMPRESSEDFLAG
-    return encodedData
+    return bytes(encodedData)

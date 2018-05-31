@@ -14,7 +14,7 @@ class Transaction(object):
     """
 
     def __init__(self, tx_type=None, payload_version=0, payload=None, attributes=None, utxo_inputs=None,
-                 balance_inputs=None, outputs=None, locktime=0, programs=None, hash=None):
+                 outputs=None, locktime=0, programs=None, hash=None):
         self.InvalidTransactionSize = -1
         self.PublicKeyScriptLength = 35
         self.SignatureScriptLength = 65
@@ -28,7 +28,6 @@ class Transaction(object):
         self.payload = payload
         self.attributes = attributes
         self.utxo_inputs = utxo_inputs
-        self.balance_inputs = balance_inputs
         self.outputs = outputs
         self.locktime = locktime
         self.programs = programs
@@ -38,7 +37,6 @@ class Transaction(object):
         buf_bytes = b''
         if self.hash is None:
             buf_bytes += self.serialize_unsigned()
-            # print("buf_bytes" + utility.bytes_to_hex_string(buf_bytes))
 
             f = utility.to_aes_key(buf_bytes)
             self.hash = f
@@ -53,8 +51,6 @@ class Transaction(object):
 
         buf_bytes += self.payload.serialize()
 
-        #print("payload:" + utility.bytes_to_hex_string(buf_bytes))
-
         buf_bytes += bytes([len(self.attributes)])
         if len(self.attributes) > 0:
             for tx_attribute in self.attributes:
@@ -64,20 +60,21 @@ class Transaction(object):
         if len(self.utxo_inputs) > 0:
             for utxo_input in self.utxo_inputs:
                 buf_bytes += utxo_input.serialize()
+
         length = len(self.outputs)
-        if length < 255:  # one byte, 8 bits, 1111 1111
+        if length < 255:
+            # one byte, 8 bits, 1111 1111
             buf_bytes += length.to_bytes(1, byteorder='little')
-        else:  # two byte, 16 bits, 1111 1111 1111 1111
+        else:
+            # two byte, 16 bits, 1111 1111 1111 1111,
+            # we do not support 32 bits and 64 bits now.
             buf_bytes += b'\xfd'
             buf_bytes += length.to_bytes(2, byteorder='little')
         if len(self.outputs) > 0:
             for output in self.outputs:
                 buf_bytes += output.serialize()
-        #print("lock time: ", self.locktime)
-        locktime = struct.pack(">I", self.locktime)
-        locktime = utility.add_zero(locktime, 4)
-        buf_bytes += utility.reverse_values_bitwise(locktime)
-        #print("locktime:" + str(self.locktime))
+
+        buf_bytes += self.locktime.to_bytes(4, byteorder='little')
         return buf_bytes
 
     def get_transaction_type(self):
@@ -104,7 +101,6 @@ class Transaction(object):
                                                                 16) != self.STANDARD:
             print("invalid standard transaction code, length not match")
             return None
-        # code = code[:len(code) - 2]
         script = code[:self.PublicKeyScriptLength * 2]
         script_list = utility.valuebytes_to_valuebytelist(script)
         signer = utility.script_to_program_hash(script_list)
@@ -119,10 +115,7 @@ class Transaction(object):
     def serialize(self):
         buf = self.serialize_unsigned()
         lens = len(self.programs)
-        # print("program length:" + str(lens))
-        # extended = struct.pack("<Q", lens)
-        extended = bytes([lens])
-        buf = utility.write_var_unit(buf, extended)
+        buf = utility.write_var_unit(buf, lens)
         if lens > 0:
             for p in self.programs:
                 buf = p.serialize(buf)
@@ -142,7 +135,7 @@ class Transaction(object):
             print("missing transaction program")
         new_sign = b''
         new_sign += (bytes([len(signed_transaction)]))
-        new_sign += (signed_transaction)
+        new_sign += signed_transaction
         if self.programs[0].parameter is None:
             self.programs[0].parameter = b''
         self.programs[0].parameter += new_sign
@@ -150,7 +143,6 @@ class Transaction(object):
 
     def get_multi_public_keys(self):
         code = self.get_transaction_code()
-        print("wocao", code)
         if len(code) < self.MinMultiSignCodeLength or code[len(code) - 1] != self.MULTISIG:
             print("not a valid multi sign transaction code, length not enough")
         code = code[:len(code) - 1]
@@ -158,14 +150,12 @@ class Transaction(object):
         code = code[:len(code) - 1]
         if len(code) % (self.PublicKeyScriptLength - 1) != 0:
             print("not a valid multi sign transaction code, length not enough")
+
         i = 0
         public_keys = []
         while i < len(code):
             script = code[i:i + self.PublicKeyScriptLength - 1]
             i += self.PublicKeyScriptLength - 1
-            # buf = []
-            # for x in script:
-            #     buf += bytes([x])
             public_keys.append(script)
 
         return public_keys

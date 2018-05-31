@@ -11,9 +11,9 @@ class Asset(object):
     """
 
     def __init__(self, name="", description="", precision=b'', asset_type=b'', record_type=b'\x00'):
-        '''
+        """
         Constructor
-        '''
+        """
         self.name = name
         self.description = description
         self.precision = precision

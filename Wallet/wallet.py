@@ -11,7 +11,6 @@ from TransactionComponents import tx_output as Txo
 from TransactionComponents import utxo_tx_input as UTXOi
 from TransactionComponents import program as Pg
 from TransactionComponents import asset
-from TransactionComponents import balance_tx_input as BTxi
 from ExternalAPIs import elastos_restful_api
 from TransactionComponents import transfer_asset
 import binascii
@@ -38,7 +37,7 @@ class Wallet(object):
                     precision=bytes([0x08]),
                     asset_type=bytes([0x00])),
                 amount=0,
-                controller=0),
+            ),
             attributes=[],
             utxo_inputs=[],
             outputs=[],
@@ -97,7 +96,7 @@ class Wallet(object):
             utxo_input = UTXOi.UTXOTxInput(
                 refer_tx_id=utxo['Txid'],
                 refer_tx_output_index=utxo['Index'],
-                sequence=0)
+                sequence=100)
             tx_inputs.append(utxo_input)
             if utxo_value < total_output_amount:
                 total_output_amount -= utxo_value
@@ -121,7 +120,6 @@ class Wallet(object):
             payload=transfer_asset.TransferAsset(),
             attributes=attributes,
             utxo_inputs=tx_inputs,
-            balance_inputs=[BTxi.BalanceTxInput()],
             outputs=tx_outputs,
             programs=[Pg.Program(code=self.account.sign_script)],
             locktime=0
@@ -152,8 +150,8 @@ class Wallet(object):
     def sign_standard_transaction(self, password, transaction):
         buf = b''
         program_hash = transaction.get_standard_signer()
-        pgh_a = utility.bytes_to_hex_string(program_hash)
-        pgh_b = utility.bytes_to_hex_string(self.account.program_hash)
+        pgh_a = program_hash
+        pgh_b = self.account.program_hash
         if pgh_a != pgh_b:
             return "Invalid signer, program hash not match"
 
@@ -168,12 +166,11 @@ class Wallet(object):
 
     def sign_multi_transaction(self, password, transaction):
         program_hashes = transaction.get_multi_signer()
-        print("program_hashes:", program_hashes)
         pgh_b = self.account.program_hash
         index = 0
         signer_index = -1
         for pgh_a in program_hashes:
-            if pgh_a == pgh_b.decode():
+            if pgh_a == pgh_b.hex():
                 signer_index = index
                 break
             index = index + 1
@@ -195,7 +192,7 @@ class Wallet(object):
                     precision=bytes([0x08]),
                     asset_type=bytes([0x00])),
                 amount=0,
-                controller=0),
+            ),
             attributes=[],
             utxo_inputs=[],
             outputs=[],
@@ -204,7 +201,6 @@ class Wallet(object):
 
         asset_id = system_token.hashed()
 
-        # asset_id = Utility.valuebytes_to_utfbytes(b'b037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a4ead0a3')
         print("asset_id: " + binascii.b2a_hex(asset_id).decode())
         return asset_id
 
@@ -256,7 +252,7 @@ class Wallet(object):
     def send_transaction(self, transaction):
         content = transaction.serialize()
         method = "sendrawtransaction"
-        params = {"data": utility.bytes_to_hex_string(content)}
+        params = {"data": content.hex()}
         data = {
             "method": method,
             "params": params

@@ -32,8 +32,6 @@ EMPTYBYTE = 0x00
 STANDARD = 0xac
 MULTISIG = 0xae
 
-UINT168SIZE = 21
-
 CoinBase = bytes([0x00])
 RegisterAsset = bytes([0x01])
 TransferAsset = bytes([0x02])
@@ -58,7 +56,6 @@ SPV_INTERVAL = 10000
 
 
 def script_to_program_hash(signature_redeem_script_bytes):
-    print("wocaocaocaocaocao", signature_redeem_script_bytes)
     temp = SHA256.new(signature_redeem_script_bytes)
     md = RIPEMD160.new(data=temp.digest())
     f = md.digest()
@@ -95,26 +92,17 @@ def address_to_programhash(address):
 
 
 def write_var_unit(buf_bytes, value):
-    # reversed_value = reverse_values_bitwise(value)
-    value_int = utf_to_rawint(value)
-    if value_int < 0xfd:
-        buf_bytes += value
-        return buf_bytes
-    elif value_int <= 0xffff:
-        extended_value = add_zero(value, 16)
-        reversed_value = reverse_values_bitwise(extended_value)
+    if value < 0xfd:
+        buf_bytes += value.to_bytes(1, 'little')
+    elif value <= 0xffff:
         buf_bytes += bytes([0xfd])
-        buf_bytes += reversed_value
-    elif value_int <= 0xffffffff:
-        extended_value = add_zero(value, 32)
-        reversed_value = reverse_values_bitwise(extended_value)
+        buf_bytes += value.to_bytes(2, 'little')
+    elif value <= 0xffffffff:
         buf_bytes += bytes([0xfe])
-        buf_bytes += reversed_value
+        buf_bytes += value.to_bytes(4, 'little')
     else:
-        extended_value = add_zero(value, 64)
-        reversed_value = reverse_values_bitwise(extended_value)
         buf_bytes += bytes([0xff])
-        buf_bytes += reversed_value
+        buf_bytes += value.to_bytes(8, 'little')
     return buf_bytes
 
 
@@ -134,15 +122,6 @@ def reverse_values_bitwise(n):
     b = '{:0{width}b}'.format(n, width=width)
     result = int(b[::-1], 2)
     return result
-
-
-def bytes_to_hex_string(bytes_value):
-    if bytes_value == None:
-        return ""
-    if "\\" in str(bytes_value):
-        return binascii.b2a_hex(bytes_value).decode("utf-8")
-    else:
-        return str(bytes_value)[2:len(bytes_value) + 2]
 
 
 def do_sign(transaction, wallet_key_info):
@@ -165,16 +144,6 @@ def valuebytes_to_valuebytelist(bytes_value):
     return buf
 
 
-def valuebytes_to_utfbytes(bytes_value):
-    value_list = valuebytes_to_valuebytelist(bytes_value)
-    utf_bytes = b''
-    for v in value_list:
-        hex_string = bytes_to_hex_string(v)
-        hex_value = int(hex_string, 16)
-        utf_bytes += bytes([hex_value])
-    return utf_bytes
-
-
 def add_zero(bytes_value, expected_length):
     if len(bytes_value) == expected_length:
         return bytes_value
@@ -185,14 +154,6 @@ def add_zero(bytes_value, expected_length):
     for _ in range(zero_to_add):
         bytes_value = bytes([0]) + bytes_value
     return bytes_value
-
-
-def utf_to_rawint(value):
-    result = 0
-    for i in range(len(value)):
-        digit = value[len(value) - i - 1]
-        result += digit * 256 ** i
-    return result
 
 
 def deploy(configuration_lists=list()):
@@ -224,7 +185,3 @@ def deploy(configuration_lists=list()):
         nodes_list.append(node.Node(i=index, dirname=node_path, configuration=configuration['Configuration']))
 
     return nodes_list
-
-
-def get_datadir_path(dirname, n):
-    return os.path.join(dirname, "node" + str(n))
