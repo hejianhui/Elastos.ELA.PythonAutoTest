@@ -37,7 +37,7 @@ class Node(object):
     will be dispatched to the RPC and Restful connections.
     """
 
-    def __init__(self, i, dirname, configuration=list()):
+    def __init__(self, i, dirname, configuration: dict):
         self.index = i
         self.datadir = os.path.join(dirname, "ela" + str(i))
 

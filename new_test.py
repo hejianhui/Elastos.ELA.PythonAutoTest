@@ -106,13 +106,24 @@ wallet4 = wallet.Wallet(account4)
 
 foundation_wallet = wallet.Wallet(foundation_account)
 
-tx = foundation_wallet.create_transaction(foundation_account.address, [account2.address, account3.address], 0.0001,
+tx = foundation_wallet.create_transaction(foundation_account.address, [account1.address, account2.address], 1,
                                           0.00001)
 tx = wallet1.sign_multi_transaction("any", tx)
-tx.programs[0].show_info()
 tx = wallet2.sign_multi_transaction("any", tx)
-tx.programs[0].show_info()
 tx = wallet3.sign_multi_transaction("any", tx)
-tx.programs[0].show_info()
+tx = wallet4.sign_multi_transaction("any", tx)
 
 print(wallet1.send_transaction(tx))
+
+result = node0.jsonrpc.discretemining(count=1)
+
+print(result)
+
+single_tx = wallet1.create_transaction(account1.address, [account2.address], 0.01, 0.00001)
+wallet1.sign_standard_transaction('any', single_tx)
+
+print(result)
+
+result = wallet1.send_transaction(single_tx)
+
+print(result)

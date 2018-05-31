@@ -97,13 +97,10 @@ class Transaction(object):
     def get_standard_signer(self):
         code = self.get_transaction_code()
         code_length = len(code)
-        if code_length != self.PublicKeyScriptLength * 2 or int('0x' + code[code_length - 2:].decode(),
-                                                                16) != self.STANDARD:
+        if code_length != self.PublicKeyScriptLength or code[-1] != self.STANDARD:
             print("invalid standard transaction code, length not match")
             return None
-        script = code[:self.PublicKeyScriptLength * 2]
-        signer = utility.script_to_program_hash(script)
-        return signer
+        return utility.script_to_program_hash(code)
 
     def get_programs(self):
         return self.programs
