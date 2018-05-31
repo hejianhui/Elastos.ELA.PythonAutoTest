@@ -102,8 +102,7 @@ class Transaction(object):
             print("invalid standard transaction code, length not match")
             return None
         script = code[:self.PublicKeyScriptLength * 2]
-        script_list = utility.valuebytes_to_valuebytelist(script)
-        signer = utility.script_to_program_hash(script_list)
+        signer = utility.script_to_program_hash(script)
         return signer
 
     def get_programs(self):

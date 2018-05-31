@@ -1,2 +1,5 @@
-# TestFramework
-基于Python的node、ela-cli测试框架
+# Elastos.ELA.PythonAutoTest
+
+a test framework written in python for ela node testing.
+
+run `python3 new_test.py` to see results.

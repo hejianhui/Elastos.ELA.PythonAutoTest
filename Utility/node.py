@@ -88,7 +88,6 @@ class SPVNode(object):
     """
 
     def __init__(self, i, dirname, rpc_timeout=30, extra_conf=None):
-        # coverage_dir用于保存log信息，暂未使用
         self.index = i
         self.datadir = os.path.join(dirname, "spvnode" + str(i))
         print(i, self.datadir)

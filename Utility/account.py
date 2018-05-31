@@ -24,6 +24,7 @@ EMPTYBYTE = 0x00
 STANDARD = 0xac
 MULTISIG = 0xae
 
+
 class Account(object):
     """
     classdocs
@@ -336,16 +337,11 @@ class MultiSignAccount(object):
         op_code = utility.PUSH1 + n - 1
         buf += bytes([op_code])
         buf += bytes([MULTISIG])
-        return bytes(buf)
+        return buf
 
     def show_info(self):
         print("address:", self.address)
         print("program hash:", self.program_hash)
-
-
-def get_hex_public_key(ECCkey):
-    encoded = encode_point(is_compressed=True, public_key_ECC=ECCkey)
-    return encoded.hex()
 
 
 def encode_point(is_compressed, public_key_ECC):

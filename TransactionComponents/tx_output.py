@@ -27,12 +27,9 @@ class TransactionOutput(object):
 
         expanded_value = int(self.value * 10 ** 8)
 
-        # extended_value_bytes = utility.add_zero(struct.pack(">Q", expanded_value), 8)
-        # reversed_value_bytes = utility.reverse_values_bitwise(extended_value_bytes)
-
         serialized += expanded_value.to_bytes(8, 'little')
-        # serialized += Utility.reverse_values_bitwise(self.value)
-        serialized += utility.reverse_values_bitwise(struct.pack("I", self.output_lock))
+        # serialized += utility.reverse_values_bitwise(struct.pack("I", self.output_lock))
+        serialized += self.output_lock.to_bytes(4, 'little')
         serialized += self.program_hash
 
         return serialized

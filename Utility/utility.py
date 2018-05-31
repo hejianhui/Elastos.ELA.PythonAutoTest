@@ -13,7 +13,6 @@ import config
 
 from Crypto.Hash import SHA256
 from Crypto.Hash import RIPEMD160
-import binascii
 import base58
 from Utility import node
 from Crypto.Signature import DSS
@@ -106,24 +105,6 @@ def write_var_unit(buf_bytes, value):
     return buf_bytes
 
 
-def reverse_values_bitwise(n):
-    if n == None:
-        return 0
-    if (type(n) is bytes) and "\\" in str(n):
-        buf = b''
-        for i in range(len(n)):
-            index = len(n) - 1 - i
-            temp = n[index]
-            buf += bytes([temp])
-        return buf
-
-    min_bit_length = n.bit_length()
-    width = min_bit_length + 4 - min_bit_length % 4
-    b = '{:0{width}b}'.format(n, width=width)
-    result = int(b[::-1], 2)
-    return result
-
-
 def do_sign(transaction, wallet_key_info):
     ECC_key = wallet_key_info
     buf = transaction.serialize_unsigned()
@@ -131,29 +112,6 @@ def do_sign(transaction, wallet_key_info):
     signer = DSS.new(ECC_key, 'fips-186-3')
     signed_data = signer.sign(h)
     return signed_data
-
-
-def valuebytes_to_valuebytelist(bytes_value):
-    buf = []
-    if len(bytes_value) % 2 != 0:
-        print("Invalid bytes, need to have even length")
-        return
-    for i in range(int(len(bytes_value) / 2)):
-        index = i * 2
-        buf.append(bytes_value[index:index + 2])
-    return buf
-
-
-def add_zero(bytes_value, expected_length):
-    if len(bytes_value) == expected_length:
-        return bytes_value
-    if len(bytes_value) > expected_length:
-        print("Out of limit length")
-        return
-    zero_to_add = expected_length - len(bytes_value)
-    for _ in range(zero_to_add):
-        bytes_value = bytes([0]) + bytes_value
-    return bytes_value
 
 
 def deploy(configuration_lists=list()):
