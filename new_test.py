@@ -15,7 +15,7 @@ account3.show_info()
 account4 = account.Account("foundationwallet4",
                            "22e388e026234863ba077fe18783bbf7935c49ed08898995e7f5f64db8d51cef")
 account4.show_info()
-foundation_account = account.MultiSignAccount(3, "name", "password",
+foundation_account = account.MultiSignAccount(3, "name",
                                               [account2.ECCkey, account1.ECCkey, account4.ECCkey, account3.ECCkey])
 foundation_account.show_info()
 
@@ -108,22 +108,22 @@ foundation_wallet = wallet.Wallet(foundation_account)
 
 tx = foundation_wallet.create_transaction(foundation_account.address, [account1.address, account2.address], 1,
                                           0.00001)
-tx = wallet1.sign_multi_transaction("any", tx)
-tx = wallet2.sign_multi_transaction("any", tx)
-tx = wallet3.sign_multi_transaction("any", tx)
-tx = wallet4.sign_multi_transaction("any", tx)
+tx = wallet1.sign_multi_transaction(tx)
+tx = wallet2.sign_multi_transaction(tx)
+tx = wallet3.sign_multi_transaction(tx)
+tx = wallet4.sign_multi_transaction(tx)
 
-print(wallet1.send_transaction(tx))
+print(node0.jsonrpc.sendrawtransaction(data=tx.serialize_unsigned))
 
 result = node0.jsonrpc.discretemining(count=1)
 
 print(result)
 
 single_tx = wallet1.create_transaction(account1.address, [account2.address], 0.01, 0.00001)
-wallet1.sign_standard_transaction('any', single_tx)
+wallet1.sign_standard_transaction(single_tx)
 
 print(result)
 
-result = wallet1.send_transaction(single_tx)
+result = node0.jsonrpc.sendrawtransaction(single_tx)
 
 print(result)

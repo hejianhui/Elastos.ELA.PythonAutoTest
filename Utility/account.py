@@ -4,7 +4,6 @@ Created on Mar 30, 2018
 @author: bopeng
 """
 from Crypto.PublicKey import ECC
-import binascii
 import os
 import json
 
@@ -307,10 +306,9 @@ class Account(object):
 
 
 class MultiSignAccount(object):
-    def __init__(self, m, name, password, eccs=list()):
+    def __init__(self, m, name, eccs=list()):
         self.public_keys = eccs
         self.name = name
-        self.password = password
         self.n = len(eccs)
         self.address = None
         self.program_hash = None

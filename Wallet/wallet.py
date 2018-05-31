@@ -4,6 +4,7 @@ Created on Apr 11, 2018
 @author: bopeng
 """
 from Utility import utility
+from Utility import restful
 from TransactionComponents import transaction as Tx
 from TransactionComponents import register_asset as Ra
 from TransactionComponents import tx_attribute as Txa
@@ -11,10 +12,8 @@ from TransactionComponents import tx_output as Txo
 from TransactionComponents import utxo_tx_input as UTXOi
 from TransactionComponents import program as Pg
 from TransactionComponents import asset
-from ExternalAPIs import elastos_restful_api
 from TransactionComponents import transfer_asset
 import binascii
-import requests
 
 
 class Wallet(object):
@@ -43,8 +42,6 @@ class Wallet(object):
             outputs=[],
             programs=[]
         ).hashed()
-
-        self.os_node_api = elastos_restful_api.RestfulAPI()
 
         '''
         create_standard_keystore data store in original Go version code, SQLite database should be created 
@@ -126,28 +123,7 @@ class Wallet(object):
         )
         return tx
 
-    def sign_transaction(self, password="", transaction=None):
-        if transaction is None:
-            print("Transaction not found")
-            return None
-        if self.account is None:
-            print("wallet's account not found")
-        sign_type = int('0x' + transaction.get_transaction_type().decode(), 16)
-        signed_transaction = None
-        if sign_type == transaction.STANDARD:
-            signed_transaction = self.sign_standard_transaction(password, transaction)
-        elif sign_type == transaction.MULTISIG:
-            signed_transaction = self.sign_multi_transaction(password, transaction)
-        return signed_transaction
-
-    '''
-    password here is only used to get private key
-    private key is already in ECC_key, so there is no use of password
-    need to modify for safety reason
-    ignored for now
-    '''
-
-    def sign_standard_transaction(self, password, transaction):
+    def sign_standard_transaction(self, transaction):
         buf = b''
         program_hash = transaction.get_standard_signer()
         pgh_a = program_hash
@@ -155,7 +131,6 @@ class Wallet(object):
         if pgh_a != pgh_b:
             return "Invalid signer, program hash not match"
 
-        # FIX ME: should validate password in Utility.do_sign
         signed_transaction = utility.do_sign(transaction, self.account.ECCkey)
         buf += bytes([len(signed_transaction)])
         buf += signed_transaction
@@ -164,7 +139,7 @@ class Wallet(object):
         transaction.set_programs([program])
         return transaction
 
-    def sign_multi_transaction(self, password, transaction):
+    def sign_multi_transaction(self, transaction):
         program_hashes = transaction.get_multi_signer()
         pgh_b = self.account.program_hash
         index = 0
@@ -177,7 +152,6 @@ class Wallet(object):
         if signer_index == -1:
             print("Invalid multi sign signer")
             return
-        # FIX ME: should validate password in Utility.do_sign
         signed_transaction = utility.do_sign(transaction, self.account.ECCkey)
         transaction.append_signature(signed_transaction)
         return transaction
@@ -204,11 +178,8 @@ class Wallet(object):
         print("asset_id: " + binascii.b2a_hex(asset_id).decode())
         return asset_id
 
-    def get_utxo_by_address(self, target_node_ip, target_node_port, spender_address):
-        if target_node_ip.lower() == "localhost":
-            target_node_ip = "127.0.0.1"
-        self.os_node_api.set_address(target_node_ip, target_node_port)
-        utxos = self.os_node_api.get_utxo_by_addr(spender_address)
+    def get_utxo_by_address(self, spender_address):
+        utxos = restful.RestfulServer().get_utxo_by_address(spender_address)
         if utxos['Desc'] == 'SUCCESS' or utxos['Desc'] == 'Success':
             return utxos['Result']
         return None
@@ -220,7 +191,7 @@ class Wallet(object):
     '''
 
     def get_current_height(self):
-        height = self.os_node_api.get_block_height()['Result']
+        height = restful.RestfulServer().get_block_height()['Result']
         return height
 
     def remove_locked_utxos(self, utxos):
@@ -248,17 +219,6 @@ class Wallet(object):
     def sort_utxos_asc_x(self, utxos):
         self.quicksort(utxos, 0, len(utxos) - 1)
         return utxos
-
-    def send_transaction(self, transaction):
-        content = transaction.serialize()
-        method = "sendrawtransaction"
-        params = {"data": content.hex()}
-        data = {
-            "method": method,
-            "params": params
-        }
-        resp = requests.post("http://127.0.0.1:10336", json=data)
-        return resp.json()
 
     # Quick Sort, need to fix stack overflow bug
     def quicksort(self, arr, i, j):
