@@ -132,9 +132,9 @@ class Transaction(object):
         scripts = self.get_multi_public_keys()
         signers = []
         for script in scripts:
-            script.append(bytes([self.STANDARD]))
+            script += bytes([self.STANDARD])
             hash_value = utility.script_to_program_hash(script)
-            signers.append(binascii.hexlify(hash_value))
+            signers.append(hash_value.hex())
         return signers
 
     def append_signature(self, signed_transaction):
@@ -150,8 +150,7 @@ class Transaction(object):
 
     def get_multi_public_keys(self):
         code = self.get_transaction_code()
-        print(code)
-        code = bytearray.fromhex(code.decode('utf-8'))
+        print("wocao", code)
         if len(code) < self.MinMultiSignCodeLength or code[len(code) - 1] != self.MULTISIG:
             print("not a valid multi sign transaction code, length not enough")
         code = code[:len(code) - 1]
@@ -164,9 +163,9 @@ class Transaction(object):
         while i < len(code):
             script = code[i:i + self.PublicKeyScriptLength - 1]
             i += self.PublicKeyScriptLength - 1
-            buf = []
-            for x in script:
-                buf.append(bytes([x]))
-            public_keys.append(buf)
+            # buf = []
+            # for x in script:
+            #     buf += bytes([x])
+            public_keys.append(script)
 
         return public_keys

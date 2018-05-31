@@ -169,12 +169,11 @@ class Wallet(object):
     def sign_multi_transaction(self, password, transaction):
         program_hashes = transaction.get_multi_signer()
         print("program_hashes:", program_hashes)
-        pgh_b = utility.bytes_to_hex_string(self.account.program_hash)
+        pgh_b = self.account.program_hash
         index = 0
         signer_index = -1
         for pgh_a in program_hashes:
-            pgh_a = pgh_a.decode('utf-8')
-            if pgh_a == pgh_b:
+            if pgh_a == pgh_b.decode():
                 signer_index = index
                 break
             index = index + 1

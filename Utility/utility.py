@@ -8,12 +8,8 @@ Created on Apr 11, 2018
 import os
 import datetime
 import json
-import requests
 import shutil
-import time
 import config
-
-from . import account
 
 from Crypto.Hash import SHA256
 from Crypto.Hash import RIPEMD160
@@ -60,16 +56,9 @@ PORT_MINING = 339
 PORT_INTERVAL = 1000
 SPV_INTERVAL = 10000
 
-def script_to_program_hash(signature_redeem_script_byte_list):
-    signature_redeem_script_bytes = b''
-    if "\\" in str(signature_redeem_script_byte_list):
-        for b in signature_redeem_script_byte_list:
-            signature_redeem_script_bytes = signature_redeem_script_bytes + b
-    else:
-        for b in signature_redeem_script_byte_list:
-            b_v = int(str(b)[2:len(str(b)) - 1], 16)
-            b_b = bytes([b_v])
-            signature_redeem_script_bytes += b_b
+
+def script_to_program_hash(signature_redeem_script_bytes):
+    print("wocaocaocaocaocao", signature_redeem_script_bytes)
     temp = SHA256.new(signature_redeem_script_bytes)
     md = RIPEMD160.new(data=temp.digest())
     f = md.digest()
@@ -94,23 +83,15 @@ def to_aes_key(data_bytes):
 
 def program_hash_to_address(program_hash_bytes):
     data = program_hash_bytes
-    temp = SHA256.new(data)
-    bin_temp_value = temp.digest()
-    double_value = SHA256.new(bin_temp_value).digest()
-    frag = double_value[0:4]
-    data = data + frag
+    double_value = SHA256.new(SHA256.new(data).digest()).digest()
+    flag = double_value[0:4]
+    data = data + flag
     encoded = base58.b58encode(data)
     return encoded
 
 
 def address_to_programhash(address):
-    decoded = base58.b58decode_check(address)
-    ph = decoded[0:21]
-    addr = program_hash_to_address(ph).decode()
-    if addr != address:
-        print("[AddressToProgramHash]: decode address verify failed.")
-        return
-    return ph
+    return base58.b58decode_check(address)
 
 
 def write_var_unit(buf_bytes, value):
@@ -173,17 +154,6 @@ def do_sign(transaction, wallet_key_info):
     return signed_data
 
 
-def bytes_to_hex_value(bytes_value):
-    return int('0x' + bytes_value.decode(), 16)
-
-
-def bytelist_to_bytes(byte_list):
-    buf = b''
-    for b in byte_list:
-        buf += b
-    return buf
-
-
 def valuebytes_to_valuebytelist(bytes_value):
     buf = []
     if len(bytes_value) % 2 != 0:
@@ -225,17 +195,6 @@ def utf_to_rawint(value):
     return result
 
 
-# Assert functions
-##################
-
-def assert_equal(thing1, thing2, *args):
-    if thing1 != thing2 or any(thing1 != arg for arg in args):
-        raise AssertionError("not(%s)" % " == ".join(str(arg) for arg in (thing1, thing2) + args))
-
-
-# Utility functions
-###################
-
 def deploy(configuration_lists=list()):
     """
     this function receives a list of dictionary ,
@@ -269,67 +228,3 @@ def deploy(configuration_lists=list()):
 
 def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))
-
-
-def update_config(nodedir, options):
-    with open(os.path.join(nodedir, 'config.json'), "r+b") as config_file:
-        config_json = config_file.read()
-        config_json = json.loads(config_json.decode("utf-8-sig").strip())
-        for config_key in options.keys():
-            if isinstance(options[config_key], dict):
-                for _key in options[config_key].keys():
-                    config_json['Configuration'][config_key][_key] = options[config_key][_key]
-            else:
-                config_json['Configuration'][config_key] = options[config_key]
-
-    # json_str = json.dumps(config_json, sort_keys=False, indent=4, separators=(',', ':'))
-
-    with open(os.path.join(nodedir, 'config.json'), 'w') as config_output:
-        json.dump(config_json, config_output, sort_keys=False, indent=4, separators=(',', ':'))
-
-
-def import_addresses(path='./address.json'):
-    if not os.path.exists(path):
-        print("There is no backup file address.json")
-        return None
-    else:
-        with open(path, 'r') as address_file:
-            address_json = address_file.read()
-            address_json = json.loads(address_json.strip())
-            print(type(address_json), address_json)
-        return address_json
-
-
-def get_utxo(address):
-    r = requests.get("http://127.0.0.1:10334/api/v1/asset/utxos/" + address)
-    if r.json()['Desc'] == 'Success':
-        for _list in r.json()['Result']:
-            if _list['AssetName'] == 'ELA':
-                return _list['Utxo']
-    else:
-        return []
-
-
-def get_transaction(txid):
-    r = requests.get("http://127.0.0.1:10334/api/v1/transaction/" + txid)
-    if r.json()['Desc'] == 'Success':
-        return r.json()['Result']
-    else:
-        return None
-
-
-# 利用交易信息中的确认数判断UTXO是否可用，后续可更改为利用blockhash查询区块高度，进而判断UTXO是否可用
-def utxo_filter(utxos):
-    utxo_useful = []
-    for utxo in utxos:
-        txid = utxo["Txid"]
-        trans = get_transaction(txid)
-        if trans['confirmations'] > 100:
-            utxo_useful.append(utxo)
-
-    return utxo_useful
-
-
-def get_useful_utxo(address):
-    utxos = get_utxo(address)
-    return utxo_filter(utxos)

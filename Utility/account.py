@@ -35,25 +35,21 @@ class Account(object):
     classdocs
     """
 
-    def __init__(self, name="name", password="password", private_key=None):
+    def __init__(self, name="name", private_key=None):
 
         """
         Constructor
         """
         self.public_key = None
         self.name = name
-        self.password = password
-        self.private_key = private_key
         self.sign_script = None
         self.program_hash = None
         self.address = None
         self.private_key = None
-        self.iv = os.urandom(16)
-        self.master_key = os.urandom(32)
-        self.name = name
         self.public_key_ecc = None
+        self.ECCkey = None
 
-        self.create_standard_key_store(password, private_key)
+        self.create_standard_key_store(private_key)
 
     '''
     def decode_point(self, encoded_data):
@@ -110,16 +106,8 @@ class Account(object):
     return a ECC type keypair with the private key given as hex value
     '''
 
-    def create_standard_key_store(self, password, private_key=None):
-        iv_bytes = self.iv
-        master_key_bytes = self.master_key
-        password_key_bytes = utility.to_aes_key(str.encode(password))
-        password_hash = SHA256.new(password_key_bytes)
-        password_hash_bytes = password_hash.digest()
-        self.password_hash_bytes = password_hash_bytes
+    def create_standard_key_store(self, private_key=None):
 
-        master_key_encrypted_bytes = self.encrypt_master_key(iv_bytes, password_key_bytes, master_key_bytes)
-        self.master_key_encrypted_bytes = master_key_encrypted_bytes
         if private_key is None:
             key_pair = self.create_key_pair()
         else:
@@ -127,18 +115,11 @@ class Account(object):
 
         self.ECCkey = key_pair
 
-        private_key_int = key_pair._d
+        private_key_int = key_pair.d
         private_key_bytes = private_key_int.to_bytes()
-        private_key_byte_array = bytearray(private_key_bytes)
-        self.private_key_byte_array = private_key_byte_array
         public_key_ECC = key_pair.public_key()
 
-        private_key_encrypted_bytes = self.encrypt_private_key(master_key_bytes, private_key_bytes,
-                                                               public_key_ECC, iv_bytes)
-        self.private_key_encrypted_bytes = private_key_encrypted_bytes
         self.private_key = private_key_bytes
-
-        # print("private_key: " + binascii.b2a_hex(self.private_key).decode())
 
         self.init_standard(public_key_ECC)
 
@@ -150,44 +131,14 @@ class Account(object):
 
         attributes = dict(
             {
-                'private_key': utility.bytes_to_hex_string(self.private_key),
-                'public_key': utility.bytes_to_hex_string(self.public_key),
-                'programhash': utility.bytes_to_hex_string(self.program_hash),
-                'master_key': utility.bytes_to_hex_string(self.master_key),
-                'iv': utility.bytes_to_hex_string(self.iv),
-                'address': utility.bytes_to_hex_string(self.address)
+                'private_key': self.private_key.hex(),
+                'public_key': self.public_key.hex(),
+                'programhash': self.program_hash.hex(),
+                'address': self.address
             }
         )
         with open('./wallets/' + self.name + ".json", 'w') as f:
             f.write(json.dumps(attributes))
-
-    def encrypt_master_key(self, iv, password_key, master_key):
-        master_key_encrypted = self.aes_encrypt(master_key, password_key, iv)
-        return master_key_encrypted
-
-    def encrypt_private_key(self, master_key, private_key, public_key_ECC, iv):
-
-        decrypted_private_key = []
-        for i in range(96):
-            decrypted_private_key.append(0x00)
-        public_key_bytes = encode_point(False, public_key_ECC)
-
-        for i in range(64):
-            decrypted_private_key[i] = public_key_bytes[i + 1]
-        for i in range(len(private_key) - 1, 0, -1):
-            decrypted_private_key[96 + i - len(private_key)] = private_key[i]
-        decrypted_private_key_bytes = array.array('B', decrypted_private_key).tobytes()
-
-        encrypted_private_key = self.aes_encrypt(decrypted_private_key_bytes, master_key, iv)
-
-        return encrypted_private_key
-
-    def aes_encrypt(self, plaintext, key, iv):
-        #         print("aes_key " + str(key) + "\n")
-        cbc_cipher = AES.new(key=key, mode=AES.MODE_CBC, iv=iv)
-        cbc_buffer = cbc_cipher.encrypt(plaintext)
-        #         print (cbc_buffer)
-        return cbc_buffer
 
     # def init_standard(self, public_key_ECC):
     #     signature_redeem_script_byte_list = self.create_standard_redeem_script(public_key_ECC)
@@ -205,16 +156,12 @@ class Account(object):
     #     self.address = utility.bytes_to_hex_string(utility.program_hash_to_address(program_hash).encode())
 
     def init_standard(self, public_key_ECC):
-        signature_redeem_script_byte_list = self.create_standard_redeem_script(public_key_ECC)
-        program_hash = utility.script_to_program_hash(signature_redeem_script_byte_list)
-        signature_redeem_script_bytes = b''
-        for b in signature_redeem_script_byte_list:
-            signature_redeem_script_bytes = signature_redeem_script_bytes + b
-
+        signature_redeem_script_bytes = self.create_standard_redeem_script(public_key_ECC)
+        program_hash = utility.script_to_program_hash(signature_redeem_script_bytes)
         self.public_key = get_hex_public_key(public_key_ECC)
-        self.sign_script = binascii.hexlify(signature_redeem_script_bytes)
+        self.sign_script = signature_redeem_script_bytes
         self.program_hash = binascii.hexlify(program_hash)
-        self.address = utility.bytes_to_hex_string(utility.program_hash_to_address(program_hash))
+        self.address = utility.program_hash_to_address(program_hash).decode('utf-8')
 
         # print("public_key: " + self.public_key.decode("utf-8"))
         # print("sign_script: " + self.sign_script.decode("utf-8"))
@@ -223,12 +170,7 @@ class Account(object):
 
     def create_standard_redeem_script(self, public_key_ECC):
         content = encode_point(True, public_key_ECC)
-        buf = []
-        buf.append(bytes([len(content)]))
-        for i in range(len(content)):
-            buf.append(bytes([content[i]]))
-        buf.append(bytes([STANDARD]))
-        return buf
+        return bytes([len(content)] + content + [STANDARD])
 
     def show_info(self):
         print("private_key: " + utility.bytes_to_hex_string(self.private_key))
@@ -236,8 +178,6 @@ class Account(object):
         print("sign_script: " + utility.bytes_to_hex_string(self.sign_script))
         print("program_hash: " + utility.bytes_to_hex_string(self.program_hash))
         print("address: " + self.address)
-        print("iv: " + utility.bytes_to_hex_string(self.iv))
-        print("master_key: " + utility.bytes_to_hex_string(self.master_key))
 
     # def decompress(self, yTilde, xValue, curve):
     #     x_coord = xValue
@@ -406,37 +346,28 @@ class MultiSignAccount(object):
         self.sign_script = None
         self.init_multi(m, eccs)
 
-
     def init_multi(self, m, eccs):
-        signature_redeem_script_byte_list = self.create_multi_redeem_script(m, eccs)
-        program_hash = utility.script_to_program_hash(signature_redeem_script_byte_list)
-        signature_redeem_script_bytes = b''
-        for b in signature_redeem_script_byte_list:
-            signature_redeem_script_bytes = signature_redeem_script_bytes + b
-        reversed_program_hash = b''
-        for b in bytearray(program_hash):
-            reversed_program_hash = bytes([b]) + reversed_program_hash
-
-        self.sign_script = binascii.hexlify(signature_redeem_script_bytes)
-        self.program_hash = binascii.hexlify(reversed_program_hash)
+        signature_redeem_script_bytes = self.create_multi_redeem_script(m, eccs)
+        program_hash = utility.script_to_program_hash(signature_redeem_script_bytes)
+        self.sign_script = signature_redeem_script_bytes
+        self.program_hash = program_hash
         self.address = utility.program_hash_to_address(program_hash).decode()
 
-#  structure: (PUSH1 + m -1) | encode_point(public_key) ... | (PUSH1 + n -1) | MULTISIG
+    #  structure: (PUSH1 + m -1) | encode_point(public_key) ... | (PUSH1 + n -1) | MULTISIG
     def create_multi_redeem_script(self, m, eccs):
         eccs.sort(key=lambda x: x.public_key().pointQ.x)
-        op_code = bytes([utility.PUSH1 + m - 1])
-        buf = list()
-        buf.append(op_code)
+        op_code = utility.PUSH1 + m - 1
+        buf = []
+        buf += [op_code]
         for ecc in eccs:
             content = encode_point(True, ecc.public_key())
-            buf.append(bytes([len(content)]))
-            for i in range(len(content)):
-                buf.append(bytes([content[i]]))
+            buf = buf + [len(content)] + content
         n = len(eccs)
-        op_code = bytes([utility.PUSH1 + n - 1])
-        buf.append(op_code)
-        buf.append(bytes([MULTISIG]))
-        return buf
+        op_code = utility.PUSH1 + n - 1
+        buf += [op_code]
+        buf += [MULTISIG]
+        print("multi bytes buf:", buf)
+        return bytes(buf)
 
     def show_info(self):
         print("address:", self.address)

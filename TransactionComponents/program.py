@@ -23,11 +23,11 @@ class Program(object):
         extended_para_len = utility.add_zero(bytes([len(self.parameter)]), 1)
         buf = utility.write_var_unit(buf, extended_para_len)
         buf += self.parameter
-
-        utf_code = utility.valuebytes_to_utfbytes(self.code)
-        extended_code_len = utility.add_zero(bytes([len(utf_code)]), 1)
+        print("code2:", self.code)
+        code = self.code
+        extended_code_len = utility.add_zero(bytes([len(code)]), 1)
         buf = utility.write_var_unit(buf, extended_code_len)
-        buf += utf_code
+        buf += code
 
         # print("code:" + utility.bytes_to_hex_string(self.code))
         # print("parameter:" + utility.bytes_to_hex_string(self.parameter))
