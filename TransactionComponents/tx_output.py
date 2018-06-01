@@ -3,8 +3,6 @@ Created on Apr 11, 2018
 
 @author: bopeng
 """
-from Utility import utility
-import struct
 
 
 class TransactionOutput(object):

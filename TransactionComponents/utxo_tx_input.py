@@ -3,8 +3,6 @@ Created on Apr 16, 2018
 
 @author: bopeng
 """
-from Utility import utility
-import struct
 
 
 class UTXOTxInput(object):
@@ -24,5 +22,5 @@ class UTXOTxInput(object):
         serialized = b''
         serialized += bytes.fromhex(self.refer_tx_id)
         serialized += self.refer_tx_output_index.to_bytes(2, "little")  # convert to uint16
-        serialized += self.sequence.to_bytes(4, 'little')               # convert to uint32
+        serialized += self.sequence.to_bytes(4, 'little')  # convert to uint32
         return serialized

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
 """
 Created on Apr 11, 2018
 
@@ -14,7 +12,7 @@ import config
 from Crypto.Hash import SHA256
 from Crypto.Hash import RIPEMD160
 import base58
-from Utility import node
+from node import node
 from Crypto.Signature import DSS
 
 INFINITYLEN = 1
@@ -143,3 +141,37 @@ def deploy(configuration_lists=list()):
         nodes_list.append(node.Node(i=index, dirname=node_path, configuration=configuration['Configuration']))
 
     return nodes_list
+
+
+def encode_point(is_compressed, public_key_ECC):
+    public_key_x = public_key_ECC._point._x
+    public_key_y = public_key_ECC._point._y
+
+    if public_key_x is None or public_key_y is None:
+        infinity = []
+        for i in range(INFINITYLEN):
+            infinity.append(EMPTYBYTE)
+        return infinity
+    encodedData = []
+    if is_compressed:
+        for i in range(COMPRESSEDLEN):
+            encodedData.append(EMPTYBYTE)
+    else:
+        for i in range(NOCOMPRESSEDLEN):
+            encodedData.append(EMPTYBYTE)
+        y_bytes = public_key_y.to_bytes()
+        for i in range(NOCOMPRESSEDLEN - len(y_bytes), NOCOMPRESSEDLEN):
+            encodedData[i] = y_bytes[i - NOCOMPRESSEDLEN + len(y_bytes)]
+    x_bytes = public_key_x.to_bytes()
+    l = len(x_bytes)
+    for i in range(COMPRESSEDLEN - l, COMPRESSEDLEN):
+        encodedData[i] = x_bytes[i - COMPRESSEDLEN + l]
+
+    if is_compressed:
+        if public_key_y % 2 == 0:
+            encodedData[0] = COMPEVENFLAG
+        else:
+            encodedData[0] = COMPODDFLAG
+    else:
+        encodedData[0] = NOCOMPRESSEDFLAG
+    return bytes(encodedData)

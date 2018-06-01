@@ -3,9 +3,7 @@ Created on Apr 11, 2018
 
 @author: bopeng
 """
-# import random
 import os
-from Utility import utility
 
 
 class TransactionAttribute(object):

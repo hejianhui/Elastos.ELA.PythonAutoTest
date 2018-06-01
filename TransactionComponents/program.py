@@ -4,7 +4,7 @@ Created on Apr 16, 2018
 @author: bopeng
 """
 
-from Utility import utility
+from utility import utility
 
 
 class Program(object):

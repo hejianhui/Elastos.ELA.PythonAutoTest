@@ -1,4 +1,4 @@
-from Utility import account
+from Account import account, multi_sign_account
 from Utility import utility
 from Wallet import wallet
 import time
@@ -15,8 +15,8 @@ account3.show_info()
 account4 = account.Account("foundationwallet4",
                            "22e388e026234863ba077fe18783bbf7935c49ed08898995e7f5f64db8d51cef")
 account4.show_info()
-foundation_account = account.MultiSignAccount(3, "name",
-                                              [account2.ECCkey, account1.ECCkey, account4.ECCkey, account3.ECCkey])
+foundation_account = multi_sign_account.MultiSignAccount(3, "name", [account2.ECCkey, account1.ECCkey, account4.ECCkey,
+                                                                     account3.ECCkey])
 foundation_account.show_info()
 
 configuration_list = [

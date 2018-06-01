@@ -6,8 +6,7 @@ Created on Mar 30, 2018
 from Crypto.PublicKey import ECC
 import os
 import json
-
-from Utility import utility
+from utility import utility
 
 INFINITYLEN = 1
 FLAGLEN = 1
@@ -117,7 +116,7 @@ class Account(object):
 
         signature_redeem_script_bytes = self.create_standard_redeem_script(public_key_ECC)
         program_hash = utility.script_to_program_hash(signature_redeem_script_bytes)
-        self.public_key = encode_point(is_compressed=True, public_key_ECC=public_key_ECC)
+        self.public_key = utility.encode_point(is_compressed=True, public_key_ECC=public_key_ECC)
         self.sign_script = signature_redeem_script_bytes
         self.program_hash = program_hash
         self.address = utility.program_hash_to_address(program_hash).decode()
@@ -139,7 +138,7 @@ class Account(object):
             f.write(json.dumps(attributes))
 
     def create_standard_redeem_script(self, public_key_ECC):
-        content = encode_point(True, public_key_ECC)
+        content = utility.encode_point(True, public_key_ECC)
         return bytes([len(content)]) + content + bytes([STANDARD])
 
     def show_info(self):
@@ -303,74 +302,3 @@ class Account(object):
     def add_address(self, program_hash, redeem_script):
         return
     """
-
-
-class MultiSignAccount(object):
-    def __init__(self, m, name, eccs=list()):
-        self.public_keys = eccs
-        self.name = name
-        self.n = len(eccs)
-        self.address = None
-        self.program_hash = None
-        self.sign_script = None
-        self.init_multi(m, eccs)
-
-    def init_multi(self, m, eccs):
-        signature_redeem_script_bytes = self.create_multi_redeem_script(m, eccs)
-        program_hash = utility.script_to_program_hash(signature_redeem_script_bytes)
-        self.sign_script = signature_redeem_script_bytes
-        self.program_hash = program_hash
-        self.address = utility.program_hash_to_address(program_hash).decode()
-
-    #  structure: (PUSH1 + m -1) | encode_point(public_key) ... | (PUSH1 + n -1) | MULTISIG
-    def create_multi_redeem_script(self, m, eccs):
-        eccs.sort(key=lambda x: x.public_key().pointQ.x)
-        op_code = utility.PUSH1 + m - 1
-        buf = b''
-        buf += bytes([op_code])
-        for ecc in eccs:
-            content = encode_point(True, ecc.public_key())
-            buf = buf + bytes([len(content)]) + content
-        n = len(eccs)
-        op_code = utility.PUSH1 + n - 1
-        buf += bytes([op_code])
-        buf += bytes([MULTISIG])
-        return buf
-
-    def show_info(self):
-        print("address:", self.address)
-        print("program hash:", self.program_hash)
-
-
-def encode_point(is_compressed, public_key_ECC):
-    public_key_x = public_key_ECC._point._x
-    public_key_y = public_key_ECC._point._y
-
-    if public_key_x is None or public_key_y is None:
-        infinity = []
-        for i in range(INFINITYLEN):
-            infinity.append(EMPTYBYTE)
-        return infinity
-    encodedData = []
-    if is_compressed:
-        for i in range(COMPRESSEDLEN):
-            encodedData.append(EMPTYBYTE)
-    else:
-        for i in range(NOCOMPRESSEDLEN):
-            encodedData.append(EMPTYBYTE)
-        y_bytes = public_key_y.to_bytes()
-        for i in range(NOCOMPRESSEDLEN - len(y_bytes), NOCOMPRESSEDLEN):
-            encodedData[i] = y_bytes[i - NOCOMPRESSEDLEN + len(y_bytes)]
-    x_bytes = public_key_x.to_bytes()
-    l = len(x_bytes)
-    for i in range(COMPRESSEDLEN - l, COMPRESSEDLEN):
-        encodedData[i] = x_bytes[i - COMPRESSEDLEN + l]
-
-    if is_compressed:
-        if public_key_y % 2 == 0:
-            encodedData[0] = COMPEVENFLAG
-        else:
-            encodedData[0] = COMPODDFLAG
-    else:
-        encodedData[0] = NOCOMPRESSEDFLAG
-    return bytes(encodedData)

@@ -3,16 +3,16 @@ Created on Apr 11, 2018
 
 @author: bopeng
 """
-from Utility import utility
-from Utility import restful
-from TransactionComponents import transaction as Tx
-from TransactionComponents import register_asset as Ra
-from TransactionComponents import tx_attribute as Txa
-from TransactionComponents import tx_output as Txo
-from TransactionComponents import utxo_tx_input as UTXOi
-from TransactionComponents import program as Pg
-from TransactionComponents import asset
-from TransactionComponents import transfer_asset
+from utility import utility
+from server import restful
+from transactionComponents import transaction as Tx
+from transactionComponents import register_asset as Ra
+from transactionComponents import tx_attribute as Txa
+from transactionComponents import tx_output as Txo
+from transactionComponents import utxo_tx_input as UTXOi
+from transactionComponents import program as Pg
+from transactionComponents import asset
+from transactionComponents import transfer_asset
 import binascii
 
 
@@ -84,9 +84,9 @@ class Wallet(object):
             total_output_amount += value
             tx_outputs.append(tx_output)
 
-        self.utxos = self.get_utxo_by_address("localhost", "10334", from_address)[0]
+        self.utxos = self.get_utxo_by_address(from_address)[0]
         available_utxos = self.remove_locked_utxos(self.utxos)
-        available_utxos = self.sort_utxos_asc(available_utxos)
+        available_utxos.sort(key=lambda x: x['Value'])
         tx_inputs = []
         for utxo in available_utxos:
             utxo_value = float(utxo['Value'])
@@ -206,38 +206,3 @@ class Wallet(object):
                     utxo['Locktime'] = 0xffffffff - 1
             available_utxos.append(utxo)
         return available_utxos
-
-    def sort_utxos_asc(self, utxos):
-        for i in range(len(utxos) - 1):
-            for j in range(len(utxos)):
-                if utxos[i]['Value'] > utxos[j]['Value']:
-                    temp = utxos[i]
-                    utxos[i] = utxos[j]
-                    utxos[j] = temp
-        return utxos
-
-    def sort_utxos_asc_x(self, utxos):
-        self.quicksort(utxos, 0, len(utxos) - 1)
-        return utxos
-
-    # Quick Sort, need to fix stack overflow bug
-    def quicksort(self, arr, i, j):
-        if i < j:
-            pos = self.partition(arr, i, j)
-            self.quicksort(arr, i, pos - 1)
-            self.quicksort(arr, pos + 1, j)
-
-    def partition(self, arr, i, j):
-        pivot = arr[j]['Value']
-        small = i - 1
-        for k in range(i, j):
-            if arr[k]['Value'] <= pivot:
-                small += 1
-                self.swap(arr, k, small)
-
-                self.swap(arr, j, small + 1)
-                # print("Pivot = " + str(arr[small + 1]))
-                return small + 1
-
-    def swap(self, arr, i, j):
-        arr[i], arr[j] = arr[j], arr[i]

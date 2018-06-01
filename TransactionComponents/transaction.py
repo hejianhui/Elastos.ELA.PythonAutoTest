@@ -3,9 +3,7 @@ Created on Apr 16, 2018
 
 @author: bopeng
 """
-from Utility import utility
-import struct
-import binascii
+from utility import utility
 
 
 class Transaction(object):

@@ -3,8 +3,6 @@ Created on Apr 16, 2018
 
 @author: bopeng
 """
-import struct
-from Utility import utility
 
 
 class RegisterAsset(object):
