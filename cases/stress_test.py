@@ -1,8 +1,8 @@
 #  a stress test script used in test net.
 
-from Utility import account
-from Utility import utility
-from Wallet import wallet
+from account import account
+from utility import utility
+from wallet import wallet
 import time
 
 ACCOUNT_COUNT = 1000

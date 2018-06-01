@@ -1,6 +1,6 @@
-from Account import account, multi_sign_account
-from Utility import utility
-from Wallet import wallet
+from account import account, multi_sign_account
+from utility import utility
+from wallet import wallet
 import time
 
 account1 = account.Account("foundationwallet1",
