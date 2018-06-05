@@ -1,8 +1,8 @@
 import requests
-
+import time
 
 class RestfulServer:
-    def __init__(self, host='127.0.0.1', port=10334):
+    def __init__(self, host='http://127.0.0.1:', port=10334):
         self.url = host + str(port)
         self.port = port
         self.prefix = '/api/v1/'

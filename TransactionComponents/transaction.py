@@ -113,7 +113,7 @@ class Transaction(object):
         if lens > 0:
             for p in self.programs:
                 buf = p.serialize(buf)
-        return buf
+        return buf.hex()
 
     def get_multi_signer(self):
         scripts = self.get_multi_public_keys()

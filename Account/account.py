@@ -23,6 +23,11 @@ STANDARD = 0xac
 MULTISIG = 0xae
 
 
+class TestAccount(object):
+    def print_me(self):
+        print('hello test account')
+
+
 class Account(object):
     """
     classdocs

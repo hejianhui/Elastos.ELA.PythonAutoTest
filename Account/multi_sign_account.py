@@ -1,4 +1,4 @@
-from Utility import utility
+from utility import utility
 
 
 class MultiSignAccount(object):
@@ -35,4 +35,4 @@ class MultiSignAccount(object):
 
     def show_info(self):
         print("address:", self.address)
-        print("program hash:", self.program_hash)
+        print("program hash:", self.program_hash.hex())

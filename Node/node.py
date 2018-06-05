@@ -11,8 +11,8 @@ import os
 import subprocess
 
 from server import jsonrpc
+from config import NODE_NAME
 
-DEV_NULL = open(os.devnull, 'w')
 ELA_NODE_NAME = 'ela'
 
 
@@ -51,9 +51,9 @@ class Node(object):
 
     def start(self):
         """Start the node"""
-        self.process = subprocess.Popen('./' + ELA_NODE_NAME, stdout=DEV_NULL, shell=True, cwd=self.datadir)
+        self.process = subprocess.Popen('./' + NODE_NAME, cwd=self.datadir, stdout=subprocess.DEVNULL)
         self._running = True
-        self.log.info("ela node %s started, waiting for RPC to come up" % self.index)
+        print("ela node %s started, waiting for RPC to come up" % self.index)
 
     def stop(self):
         """stop the node"""

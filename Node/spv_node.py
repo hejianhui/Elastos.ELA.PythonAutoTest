@@ -45,7 +45,7 @@ class SPVNode(object):
 
     def start(self):
         """Start the node"""
-        self.process = subprocess.Popen('./' + self.name, stdout=DEV_NULL, shell=True, cwd=self.datadir)
+        self.process = subprocess.Popen('./' + self.name, cwd=self.datadir)
         self._running = True
         self.log.debug("%s started, waiting for RPC to come up" % self.name)
 

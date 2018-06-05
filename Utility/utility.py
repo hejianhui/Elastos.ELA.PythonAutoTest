@@ -3,16 +3,10 @@ Created on Apr 11, 2018
 
 @author: bopeng
 """
-import os
-import datetime
-import json
-import shutil
-import config
-
+import base58
+import time
 from Crypto.Hash import SHA256
 from Crypto.Hash import RIPEMD160
-import base58
-from node import node
 from Crypto.Signature import DSS
 
 INFINITYLEN = 1
@@ -23,7 +17,7 @@ NOCOMPRESSEDLEN = 65
 COMPEVENFLAG = 0x02
 COMPODDFLAG = 0x03
 NOCOMPRESSEDFLAG = 0x04
-P256PARAMA = -3
+# P256PARAMA = -3
 EMPTYBYTE = 0x00
 
 STANDARD = 0xac
@@ -33,26 +27,10 @@ CoinBase = bytes([0x00])
 RegisterAsset = bytes([0x01])
 TransferAsset = bytes([0x02])
 Recrd = bytes([0x03])
-Deploy = bytes([0x04])
 PUSH1 = 0x51
 
-# The maximum number of nodes a single test can spawn
-MAX_NODES = 8
-# Don't assign rpc or p2p ports lower than this
-PORT_MIN = 10000
-# The number of ports to "reserve" for p2p and rpc, each
-PORT_INFO = 333
-PORT_REST = 334
-PORT_WS = 335
-PORT_RPC = 336
-PORT_P2P = 338
-PORT_MINING = 339
-# The number of port's interval
-PORT_INTERVAL = 1000
-SPV_INTERVAL = 10000
 
-
-def script_to_program_hash(signature_redeem_script_bytes):
+def script_to_program_hash(signature_redeem_script_bytes: bytes):
     temp = SHA256.new(signature_redeem_script_bytes)
     md = RIPEMD160.new(data=temp.digest())
     f = md.digest()
@@ -67,15 +45,13 @@ def script_to_program_hash(signature_redeem_script_bytes):
 def to_aes_key(data_bytes):
     hash_value = SHA256.new(data_bytes)
     hash_value_bytes = hash_value.digest()
-    # print("first_hash " + binascii.b2a_hex(hash_value_bytes).decode("utf-8"))
 
     double_value = SHA256.new(hash_value_bytes)
     double_value_bytes = double_value.digest()
-    # print("second_hash(aes_key) " + binascii.b2a_hex(double_value_bytes).decode("utf-8"))
     return double_value_bytes
 
 
-def program_hash_to_address(program_hash_bytes):
+def program_hash_to_address(program_hash_bytes: bytes):
     data = program_hash_bytes
     double_value = SHA256.new(SHA256.new(data).digest()).digest()
     flag = double_value[0:4]
@@ -84,7 +60,7 @@ def program_hash_to_address(program_hash_bytes):
     return encoded
 
 
-def address_to_programhash(address):
+def address_to_programhash(address: str):
     return base58.b58decode_check(address)
 
 
@@ -110,37 +86,6 @@ def do_sign(transaction, wallet_key_info):
     signer = DSS.new(ECC_key, 'fips-186-3')
     signed_data = signer.sign(h)
     return signed_data
-
-
-def deploy(configuration_lists=list()):
-    """
-    this function receives a list of dictionary ,
-    in which each dictionary is composed of node name and its configuration.
-    and configuration is also a dictionary.
-    :param configuration_lists:
-    :return: list of node objects
-    """
-
-    project_path = os.environ.get('GOPATH') + '/'.join(config.ELA_PATH)
-    print("source code path:", project_path)
-
-    node_path = "%s/elastos_test_runner_%s" % ("./test", datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-    os.makedirs(node_path)
-    print("Temp dir is:", node_path)
-    nodes_list = []
-
-    for index, item in enumerate(configuration_lists):
-        name = item['name']
-        path = os.path.join(node_path, name + str(index))
-        os.makedirs(path)
-        shutil.copy(os.path.join(project_path, name), os.path.join(path))
-        configuration = item['config']
-        with open(path + '/config.json', 'w+') as f:
-            f.write(json.dumps(configuration, indent=4))
-
-        nodes_list.append(node.Node(i=index, dirname=node_path, configuration=configuration['Configuration']))
-
-    return nodes_list
 
 
 def encode_point(is_compressed, public_key_ECC):
@@ -175,3 +120,39 @@ def encode_point(is_compressed, public_key_ECC):
     else:
         encodedData[0] = NOCOMPRESSEDFLAG
     return bytes(encodedData)
+
+
+def sync_mempools(nodes: list()):
+    time_out = 15
+    while True:
+        mempools = [node.getrawmempools() for node in nodes]
+
+        # remove duplicate, if all nodes' transaction pools is synced,
+        # then the set has only one element.
+        mempool = set(mempools)
+
+        if len(mempool) == 1:
+            return
+
+        if time_out <= 0:
+            raise AssertionError('transaction pool dose not synced, timeout.')
+
+        time.sleep(1)
+        time_out -= 1
+
+
+def sync_blocks(nodes: list()):
+    time_out = 15
+    while True:
+        bestblockhashes = [node.getbestblockhash() for node in nodes]
+
+        bestblockhash = set(bestblockhashes)
+        if len(bestblockhash) == 1:
+            return
+
+        if time_out <= 0:
+            raise AssertionError('sync block failed.')
+
+
+def snake_to_camel(word):
+    return ''.join(x.capitalize() or '_' for x in word.split('_'))

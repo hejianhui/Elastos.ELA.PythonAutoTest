@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
+import logging
+import time
+import os
 
 """
 @author: Bocheng.Zhang
@@ -50,3 +53,17 @@ DEFAULT_CONFIG_FILE = {
         }
     }
 }
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+console_handler = logging.StreamHandler()
+if not os.path.exists('Logs'):
+    os.makedirs('Logs')
+file_handler = logging.FileHandler('Logs/' + time.strftime("%b-%d-%Y-%H:%M:%S-")
+                                   + __name__ + '-test.log')
+formatter = logging.Formatter('%(asctime)s %(name)s[line:%(lineno)d]'
+                              '%(levelname)s %(message)s')
+console_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)

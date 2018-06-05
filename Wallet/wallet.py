@@ -43,25 +43,7 @@ class Wallet(object):
             programs=[]
         ).hashed()
 
-        '''
-        create_standard_keystore data store in original Go version code, SQLite database should be created 
-        temporarily keep data store locally in code
-        could export all info into a file contains all wallet information in export_key_info
-        it is not recommanded because all data in file are stored without encryption, further changes needed
-        '''
-
-    '''
-    def create_locked_transaction(self, from_address, to_address, amount, fee, locked_until):
-        return self.create_locked_transaction(from_address, to_address, amount, fee, 0)
-    
-    def create_locked_multioutput_transaction(self, from_address, fee, locked_until, outputs):
-        return
-    
-    def create_multioutput_transaction(self, from_address, fee, outputs):
-        return
-    '''
-
-    def create_transaction(self, from_address=None, to_addresses=None, amount=0, fee=0, locked_until=0):
+    def create_transaction(self, from_address: str, to_addresses: list, amount: float, fee: float, locked_until=0):
         outputs = dict()
         if to_addresses != None and amount != 0:
             for address in to_addresses:
