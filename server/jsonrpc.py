@@ -20,7 +20,6 @@ class JSONRPC(object):
         return JSONRPC(url=url, method=method)
 
     def __call__(self, **kwargs):
-        print('method:', self.method)
         postdata = json.dumps({'version': '2.0', 'method': self.method, 'params': kwargs, 'id': 0})
         response = requests.post(self.url, data=postdata, headers={'Content-Type': 'application/json'})
         return response.json()

@@ -3,6 +3,7 @@ from account import account
 from account import multi_sign_account
 from wallet import wallet
 from base_class import ELATestFramework
+from utility import utility
 import time
 
 # account1 = account.Account("foundationwallet1",
@@ -29,7 +30,6 @@ configuration_list = [
                 'Magic': 1234567,
                 'Version': 23,
                 'SeedList': [
-                    '127.0.0.1:10338',
                     '127.0.0.1:20338'
                 ],
                 'HttpInfoPort': 10333,
@@ -63,8 +63,7 @@ configuration_list = [
                 'Magic': 1234567,
                 'Version': 23,
                 'SeedList': [
-                    '127.0.0.1:10338',
-                    '127.0.0.1:20338'
+                    '127.0.0.1:10338'
                 ],
                 'HttpInfoPort': 20333,
                 'HttpInfoStart': True,
@@ -171,7 +170,12 @@ class ExampleTest(ELATestFramework):
         tx = wallet3.sign_multi_transaction(tx)
         raw_tx = tx.serialize()
         node0.jsonrpc.discretemining(count=110)
+        utility.sync_blocks(self.nodes)
         print(node0.jsonrpc.sendrawtransaction(data=raw_tx))
+        utility.sync_mempools(self.nodes)
+
+        for node in self.nodes:
+            node.stop()
 
 
 if __name__ == '__main__':

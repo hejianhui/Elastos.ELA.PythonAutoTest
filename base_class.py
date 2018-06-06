@@ -60,5 +60,4 @@ class ELATestFramework(metaclass=ELATestMetaClass):
         raise NotImplementedError
 
     def main(self):
-        print(1)
         self.run_test()

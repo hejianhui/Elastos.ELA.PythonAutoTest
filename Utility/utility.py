@@ -125,27 +125,29 @@ def encode_point(is_compressed, public_key_ECC):
 def sync_mempools(nodes: list()):
     time_out = 15
     while True:
-        mempools = [node.getrawmempools() for node in nodes]
+        mempools = [node.jsonrpc.getrawmempool() for node in nodes]
 
         # remove duplicate, if all nodes' transaction pools is synced,
         # then the set has only one element.
-        mempool = set(mempools)
+        new_mempools = []
+        for mempool in mempools:
+            if mempool not in new_mempools:
+                new_mempools.append(mempool)
 
-        if len(mempool) == 1:
-            return
-
+        if len(new_mempools) == 1:
+            break
         if time_out <= 0:
             raise AssertionError('transaction pool dose not synced, timeout.')
-
         time.sleep(1)
         time_out -= 1
+        print('sync mempools time out:', time_out)
 
 
 def sync_blocks(nodes: list()):
     time_out = 15
     while True:
-        bestblockhashes = [node.getbestblockhash() for node in nodes]
-
+        bestblockhashes = [node.jsonrpc.getbestblockhash()['result'] for node in nodes]
+        print('best block hashes:', bestblockhashes)
         bestblockhash = set(bestblockhashes)
         if len(bestblockhash) == 1:
             return
@@ -153,6 +155,6 @@ def sync_blocks(nodes: list()):
         if time_out <= 0:
             raise AssertionError('sync block failed.')
 
-
-def snake_to_camel(word):
-    return ''.join(x.capitalize() or '_' for x in word.split('_'))
+        time.sleep(1)
+        time_out -= 1
+        print('sync block time out:', time_out)
