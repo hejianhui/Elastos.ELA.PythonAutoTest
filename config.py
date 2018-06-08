@@ -4,16 +4,7 @@ import logging
 import time
 import os
 
-"""
-@author: Bocheng.Zhang
-@license: Apache Licence 
-@contact: bocheng0000@gmail.com
-@file: config.py
-@time: 2018/5/9 14:54
-"""
-
 NODE_NAME = 'ela'
-
 ELASTOS_PATH = ['src', 'github.com', 'elastos']
 ELA_PATH = ELASTOS_PATH + ['Elastos.ELA']
 SPV_PATH = ELASTOS_PATH + ['Elastos.ELA.SPV']
@@ -54,14 +45,14 @@ DEFAULT_CONFIG_FILE = {
     }
 }
 
-logger = logging.getLogger(__name__)
+LOAD_TIME = time.strftime("%b-%d-%Y-%H:%M:%S")
+logger = logging.getLogger('TestFramework')
 logger.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler()
-if not os.path.exists('Logs'):
-    os.makedirs('Logs')
-file_handler = logging.FileHandler('Logs/' + time.strftime("%b-%d-%Y-%H:%M:%S-")
-                                   + __name__ + '-test.log')
-formatter = logging.Formatter('%(asctime)s %(name)s[line:%(lineno)d]'
+if not os.path.exists('./logs'):
+    os.makedirs('./logs')
+file_handler = logging.FileHandler('logs/' + LOAD_TIME + '.log')
+formatter = logging.Formatter('%(asctime)s [line:%(lineno)d]'
                               '%(levelname)s %(message)s')
 console_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)

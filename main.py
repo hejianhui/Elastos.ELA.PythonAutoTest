@@ -1,10 +1,7 @@
 import subprocess
 import time
 import os
-import importlib
-import sys
-from account import account
-
+import config
 
 def main():
     cases_dir = './'

@@ -4,6 +4,7 @@ Created on Apr 16, 2018
 @author: bopeng
 """
 from utility import utility
+from config import logger
 
 
 class Transaction(object):
@@ -81,14 +82,14 @@ class Transaction(object):
             return 0
         code_length = len(code)
         if code_length != self.PublicKeyScriptLength * 2 and len(code) < self.MinMultiSignCodeLength * 2:
-            print("invalid transaction type. redeem script is not a stadard or multi sign type")
+            logger.info("invalid transaction type. redeem script is not a stadard or multi sign type")
         result = code[len(code) - 2:]
         return result
 
     def get_transaction_code(self):
         code = self.get_programs()[0].code
         if code is None:
-            print("invalid transaction type. redeem script not found")
+            logger.info("invalid transaction type. redeem script not found")
             return None
         return code
 
@@ -96,7 +97,7 @@ class Transaction(object):
         code = self.get_transaction_code()
         code_length = len(code)
         if code_length != self.PublicKeyScriptLength or code[-1] != self.STANDARD:
-            print("invalid standard transaction code, length not match")
+            logger.info("invalid standard transaction code, length not match")
             return None
         return utility.script_to_program_hash(code)
 
@@ -138,12 +139,12 @@ class Transaction(object):
     def get_multi_public_keys(self):
         code = self.get_transaction_code()
         if len(code) < self.MinMultiSignCodeLength or code[len(code) - 1] != self.MULTISIG:
-            print("not a valid multi sign transaction code, length not enough")
+            logger.info("not a valid multi sign transaction code, length not enough")
         code = code[:len(code) - 1]
         code = code[1:]
         code = code[:len(code) - 1]
         if len(code) % (self.PublicKeyScriptLength - 1) != 0:
-            print("not a valid multi sign transaction code, length not enough")
+            logger.info("not a valid multi sign transaction code, length not enough")
 
         i = 0
         public_keys = []

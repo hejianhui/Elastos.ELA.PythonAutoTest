@@ -5,6 +5,8 @@ Created on Apr 11, 2018
 """
 from utility import utility
 from server import restful
+from config import logger
+
 from transactioncomponents import transaction as Tx
 from transactioncomponents import register_asset as Ra
 from transactioncomponents import tx_attribute as Txa
@@ -45,17 +47,12 @@ class Wallet(object):
 
     def create_transaction(self, from_address: str, to_addresses: list, amount: float, fee: float, locked_until=0):
         outputs = dict()
-        if to_addresses != None and amount != 0:
-            for address in to_addresses:
-                outputs[address] = amount
+        for address in to_addresses:
+            outputs[address] = amount
 
-        if outputs == None or len(outputs) == 0:
-            print("[Wallet], Invalid transaction target")
-
-        # NEED TO SYNC HERE, IGNORED FOR FUTURE IMPLEMENTATION
-        print('from address:', from_address)
+        logger.info('from address:', from_address)
         spender = utility.address_to_programhash(from_address)
-        print("spender:", spender)
+        logger.info("spender:", spender)
         total_output_amount = 0
         tx_outputs = []
         total_output_amount += fee
@@ -80,7 +77,6 @@ class Wallet(object):
             if utxo_value < total_output_amount:
                 total_output_amount -= utxo_value
             elif utxo_value == total_output_amount:
-                total_output_amount = 0
                 break
             elif utxo_value > total_output_amount:
                 change = Txo.TransactionOutput(
@@ -89,21 +85,23 @@ class Wallet(object):
                     output_lock=0,
                     program_hash=spender)
                 tx_outputs.append(change)
-                total_output_amount = 0
                 break
         attributes = []
         tx_attr = Txa.TransactionAttribute().new_tx_nonce_attribute()
         attributes.append(tx_attr)
-        tx = Tx.Transaction(
-            tx_type=utility.TransferAsset,
-            payload=transfer_asset.TransferAsset(),
+        return self.create_transaction_detailly(utility.TransferAsset, transfer_asset.TransferAsset(), attributes,
+                                                tx_inputs, tx_outputs, [Pg.Program(code=self.account.sign_script)], 0)
+
+    def create_transaction_detailly(self, tx_type, payload, attributes, utxo_inputs, outpus, programs, locktime):
+        return Tx.Transaction(
+            tx_type=tx_type,
+            payload=payload,
             attributes=attributes,
-            utxo_inputs=tx_inputs,
-            outputs=tx_outputs,
-            programs=[Pg.Program(code=self.account.sign_script)],
-            locktime=0
+            utxo_inputs=utxo_inputs,
+            outputs=outpus,
+            programs=programs,
+            locktime=locktime
         )
-        return tx
 
     def sign_standard_transaction(self, transaction):
         buf = b''
@@ -111,7 +109,7 @@ class Wallet(object):
         pgh_a = program_hash
         pgh_b = self.account.program_hash
         if pgh_a != pgh_b:
-            return "Invalid signer, program hash not match"
+            logger.Info("Invalid signer, program hash not match")
 
         signed_transaction = utility.do_sign(transaction, self.account.ECCkey)
         buf += bytes([len(signed_transaction)])
@@ -132,8 +130,7 @@ class Wallet(object):
                 break
             index = index + 1
         if signer_index == -1:
-            print("Invalid multi sign signer")
-            return
+            logger.info("Invalid multi sign signer")
         signed_transaction = utility.do_sign(transaction, self.account.ECCkey)
         transaction.append_signature(signed_transaction)
         return transaction
@@ -161,10 +158,11 @@ class Wallet(object):
         return asset_id
 
     def get_utxo_by_address(self, spender_address):
-        utxos = restful.RestfulServer().get_utxo_by_address(spender_address)
-        if utxos['Desc'] == 'SUCCESS' or utxos['Desc'] == 'Success':
-            return utxos['Result']
-        return None
+        response = restful.RestfulServer().get_utxo_by_address(spender_address)
+        if response['Desc'] == 'SUCCESS' or response['Desc'] == 'Success':
+            return response['Result']
+        else:
+            raise ConnectionError('cannot get utxos, result:', response)
 
     '''
     Should return the current height of the wallet.

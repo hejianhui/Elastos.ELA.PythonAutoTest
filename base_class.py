@@ -1,8 +1,9 @@
 import os
 import shutil
-import json
 import config
+import json
 import datetime
+from utility import utility
 from node import node
 
 
@@ -20,20 +21,20 @@ class ELATestMetaClass(type):
 class ELATestFramework(metaclass=ELATestMetaClass):
 
     def __init__(self, config_list=list()):
-
-        if config_list is []:
-            raise Exception('config list must not be empty!')
-
         self.config_list = config_list
-        self.nodes = self.set_up_nodes()
+        self.nodes = list()
 
     def set_up_nodes(self):
-        """
-        this function receives a list of dictionary ,
-        in which each dictionary is composed of node name and its configuration.
-        and configuration is also a dictionary.
-        :return: list of node objects
-        """
+        config_list = self.config_list
+        if not config_list:
+            config_name = utility.camel_to_snake(self.__class__.__name__)
+            try:
+                with open('./config_jsons/' + config_name + '.json') as config_file:
+                    self.config_list = json.load(config_file)
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    'need a file named ' + config_name + '.json,' +
+                    'or you can pass in your node configurations parameter when ELATestMetaClass is Initialized')
 
         project_path = os.environ.get('GOPATH') + '/'.join(config.ELA_PATH)
         print("source code path:", project_path)
@@ -60,4 +61,5 @@ class ELATestFramework(metaclass=ELATestMetaClass):
         raise NotImplementedError
 
     def main(self):
-        self.run_test()
+        self.set_up_nodes()
+        #self.run_test()

@@ -1,0 +1,70 @@
+[
+  {
+    "name": "ela",
+    "config": {
+      "Configuration": {
+        "Magic": 1234567,
+        "Version": 23,
+        "SeedList": [
+          "127.0.0.1:20338"
+        ],
+        "HttpInfoPort": 10333,
+        "HttpInfoStart": true,
+        "HttpRestPort": 10334,
+        "HttpWsPort": 10335,
+        "WsHeartbeatInterval": 60,
+        "HttpJsonPort": 10336,
+        "NodePort": 10338,
+        "NodeOpenPort": 10866,
+        "FoundationAddress": "8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3",
+        "OpenService": false,
+        "PrintLevel": 0,
+        "IsTLS": false,
+        "MultiCoreNum": 4,
+        "MaxTransactionInBlock": 10000,
+        "MaxBlockSize": 8000000,
+        "PowConfiguration": {
+          "PayToAddr": "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta",
+          "AutoMining": false,
+          "MinerInfo": "ELA",
+          "MinTxFee": 100,
+          "ActiveNet": "RegNet"
+        }
+      }
+    }
+  },
+  {
+    "name": "ela",
+    "config": {
+      "Configuration": {
+        "Magic": 1234567,
+        "Version": 23,
+        "SeedList": [
+          "127.0.0.1:10338"
+        ],
+        "HttpInfoPort": 20333,
+        "HttpInfoStart": true,
+        "HttpRestPort": 20334,
+        "HttpWsPort": 20335,
+        "WsHeartbeatInterval": 60,
+        "HttpJsonPort": 20336,
+        "NodePort": 20338,
+        "NodeOpenPort": 20866,
+        "FoundationAddress": "8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3",
+        "OpenService": false,
+        "PrintLevel": 0,
+        "IsTLS": false,
+        "MultiCoreNum": 4,
+        "MaxTransactionInBlock": 10000,
+        "MaxBlockSize": 8000000,
+        "PowConfiguration": {
+          "PayToAddr": "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta",
+          "AutoMining": false,
+          "MinerInfo": "ELA",
+          "MinTxFee": 100,
+          "ActiveNet": "RegNet"
+        }
+      }
+    }
+  }
+]

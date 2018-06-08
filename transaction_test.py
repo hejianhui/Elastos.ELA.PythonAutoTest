@@ -1,13 +1,12 @@
-#!/usr/bin/env python3
+from base_class import ELATestFramework
+from wallet import wallet
 from account import account
 from account import multi_sign_account
-from wallet import wallet
-from base_class import ELATestFramework
 from utility import utility
 from config import logger
 
 
-class ExampleTest(ELATestFramework):
+class TransactionTest(ELATestFramework):
     def run_test(self):
         account1 = account.Account("foundationwallet1",
                                    "eebfbd55819ea095107b776616669536d9f0bb6d3cd9b21665ea1fb02405cfed")
@@ -55,4 +54,4 @@ class ExampleTest(ELATestFramework):
 
 
 if __name__ == '__main__':
-    ExampleTest().main()
+    TransactionTest().main()

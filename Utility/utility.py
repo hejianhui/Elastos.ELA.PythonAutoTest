@@ -5,6 +5,8 @@ Created on Apr 11, 2018
 """
 import base58
 import time
+import re
+from config import logger
 from Crypto.Hash import SHA256
 from Crypto.Hash import RIPEMD160
 from Crypto.Signature import DSS
@@ -147,7 +149,7 @@ def sync_blocks(nodes: list()):
     time_out = 15
     while True:
         bestblockhashes = [node.jsonrpc.getbestblockhash()['result'] for node in nodes]
-        print('best block hashes:', bestblockhashes)
+        logger.info('best block hashes:', bestblockhashes)
         bestblockhash = set(bestblockhashes)
         if len(bestblockhash) == 1:
             return
@@ -158,3 +160,8 @@ def sync_blocks(nodes: list()):
         time.sleep(1)
         time_out -= 1
         print('sync block time out:', time_out)
+
+
+def camel_to_snake(class_name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', class_name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
